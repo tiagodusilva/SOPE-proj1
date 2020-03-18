@@ -17,6 +17,11 @@ int main(int argc, char *argv[], char *envp[]) {
     }
 
     print_options(&opt);
-    if (showDirec(&opt)) exit(1); 
+
+    if (showDirec(&opt)){
+        printf("Show directory error\n");
+        exit(1); 
+    }
+    
     exit(0);
 }
