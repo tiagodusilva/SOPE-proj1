@@ -18,16 +18,17 @@
  * @brief This function handles the task of showing files information
  * 
  * @param opt Options given as parameters
- * @return int 1 if success and 0 upon error
+ * @return int 0 if success and 1 upon error
  */
 int showDirec(Options *opt);
+
 /**
  * @brief For each file received, it prints the file information i.e size.  
  * 
  * @param opt Options given as parameters
  * @param name Name of the file in the folder
- * @return int 1 if success and 0 upon error
+ * @return lont int The file's size upon success, -1 otherwise
  */
-int printFileState(Options* opt, char *name);
+long int analyze_file(Options* opt, char *name);
 
 #endif //SOPE_PROJ1_SHOWFILE_H

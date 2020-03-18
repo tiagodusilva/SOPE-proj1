@@ -1,30 +1,23 @@
 #include "../include/showDirec.h"
 
-int showDirec(Options * opt){ 
+static inline void print_file(long int size, char *s) {
+    printf("%-8ld%s\n", size, s);
+}
+
+int showDirec(Options * opt){
     DIR * direc;
     struct dirent * dirent;
+    long int dir_size = 0, tmp;
+
     if ((direc = opendir(opt->path)) == NULL){  
         fprintf(stderr, "Not possible to open directory\n");
         return 1;
     }
 
-    //print all files 
-    if (opt->all){
-        while((dirent = readdir(direc)) != NULL){
-            //do not show the .. directory
-            if (strcmp(dirent->d_name, "..") == 0) continue;
-            
-            if (printFileState(opt, dirent->d_name))  
-                return 1; 
-            
-            if (strcmp(dirent->d_name, ".") != 0) 
-                printf("./");
-            printf("%s\n", dirent->d_name); 
-        }
-    }
-    else{
-        if (printFileState(opt, ".")) return 1; 
-        printf(".\n"); 
+    while((dirent = readdir(direc)) != NULL){
+        if (tmp = analyze_file(opt, dirent->d_name), tmp == -1)  
+            return 1;
+        dir_size += tmp;
     }
 
     if (closedir(direc) == -1){
@@ -32,32 +25,49 @@ int showDirec(Options * opt){
         return 1;
     }
 
+    print_file(dir_size, opt->path);
+
     return 0;
 }
 
-
-int printFileState(Options* opt, char *name){
-    struct stat s; 
-    long int numBlocks; 
+long int analyze_file(Options* opt, char *name){
+    struct stat st; 
+    long int size; 
 
     //get the complete path of the file called "name"
     char completePath[PATH_SIZE_MAX] = ""; 
-    strncpy(completePath, opt->path, PATH_MAX_CPY);
-    strncat(completePath, "/", PATH_MAX_CPY);
-    strncat(completePath, name, PATH_MAX_CPY);  
+    strcpy(completePath, opt->path);
+    strcat(completePath, "/");
+    strcat(completePath, name);
 
-
-    if (stat(completePath, &s) < 0){
+    if (stat(completePath, &st) < 0){
         fprintf(stderr, "Not possible to get file stat\n"); 
-        return 1; 
+        return -1; 
     }
 
-    //get the number of blocks allocated for the file according to the OS configurations
-    numBlocks = s.st_size/(opt->block_size) +1; 
+    if (S_ISREG(st.st_mode)) {
+        // Quick ceiling q = (x + y - 1) / y;
+        if (opt->apparent_size) {
+            size = (st.st_size + opt->block_size - 1) / opt->block_size;
+        }
+        else {
+            size = (((st.st_size + st.st_blksize - 1) / st.st_blksize)
+                + opt->block_size - 1) / opt->block_size;
+        }
+        if (opt->all) {
+            //prints the size information according to the options
+            print_file(size, completePath);   
+        }
+    }
+    else if (S_ISDIR(st.st_mode) && strcmp(name, ".") && strcmp(name, "..")) {
+        fprintf(stderr, "Unhandled directory\n");
+        fprintf(stderr, completePath);
+    }
+    else if (S_ISLNK(st.st_mode)) {
+        fprintf(stderr, "Unhandled symlink\n");
+        fprintf(stderr, completePath);
+        return 1;
+    }
 
-    //prints the size information according to the options
-    if (opt->block_size == 1) printf("%-8ld", s.st_size); 
-    else printf("%-8ld", numBlocks); 
-
-    return 0; 
+    return size;
 }

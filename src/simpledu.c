@@ -16,7 +16,7 @@ int main(int argc, char *argv[], char *envp[]) {
         exit(1);
     }
 
-    print_options(&opt);
+    // print_options(&opt);
 
     if (showDirec(&opt)){
         fprintf(stderr, "Show directory error\n");

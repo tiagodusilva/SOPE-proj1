@@ -102,6 +102,9 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
                     return 1;
                 }
             }
+            else if (strcmp(argv[cur_arg], "--apparent-size") == 0) {
+                opt->apparent_size = true;
+            }
             else {
                 // Assume it's the directory path
                 opt->path = argv[cur_arg];
