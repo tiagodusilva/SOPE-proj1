@@ -3,7 +3,7 @@
 int showDirec(Options * opt){
     DIR * direc;
     struct dirent * dirent;
-    if ((direc = opendir(opt->path)) == NULL){
+    if ((direc = opendir(opt->path)) == NULL){  
         fprintf(stderr, "Not possible to open directory\n");
         return 1;
     }
@@ -23,10 +23,12 @@ int showDirec(Options * opt){
     return 0;
 }
 
+
 int printFileState(Options* opt, char *name){
     struct stat s; 
     long int numBlocks; 
 
+    //get the complete path of the file called "name"
     char completePath[PATH_SIZE_MAX] = ""; 
     strcpy(completePath, opt->path);
     strcat(completePath, "/");
@@ -38,8 +40,10 @@ int printFileState(Options* opt, char *name){
         return 1; 
     }
 
+    //get the number of blocks allocated for the file according to the OS configurations
     numBlocks = s.st_size/(opt->block_size)+1; 
 
+    //prints the size information according to the options
     if (opt->block_size == 1) printf("%ld\n", s.st_size); 
     else printf("%ld\n", numBlocks); 
 
