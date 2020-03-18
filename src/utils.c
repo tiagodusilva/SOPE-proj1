@@ -90,7 +90,8 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
             }
             else if (strstr(argv[cur_arg], "--max-depth=") == argv[cur_arg]) {
                 if (is_num(argv[cur_arg] + MAX_DEPTH_STR_OFFSET)) {
-                    opt->max_depth = atoi(argv[cur_arg] + MAX_DEPTH_STR_OFFSET);
+                    opt->max_depth = true;
+                    opt->depth_val = atoi(argv[cur_arg] + MAX_DEPTH_STR_OFFSET);
                 }
                 else {
                     printf("Argument must be an integer (given \"%s\")\n", argv[cur_arg] + MAX_DEPTH_STR_OFFSET);
