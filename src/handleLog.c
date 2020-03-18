@@ -9,24 +9,24 @@ int createLog(char * logName){
         fprintf(stderr, "Not possible to open file %s\n", logfile); 
         return 1; 
     }
-    printf("fd %d\n", fd); 
+    
     return 0;
 } 
 
 
 void getLogName(char * logName, char* logFile){
 
-    if (!logName) strcpy(logFile, "output");
-    else strncpy(logFile, logName, MAX_SIZE_LOG); 
+    if (!logName) strcpy(logFile, "output");        //default file
+    else strncpy(logFile, logName, MAX_SIZE_LOG);   //if given by user
          
 }
 
-int writeInLog(double instant, action a, char info[]){
+int writeInLog(double instant, action a, char *info){
     pid_t pid = getpid(); 
-    char line [MAX_SIZE_LINE] = {0}; 
+    char line [MAX_SIZE_LINE] = {0};  
     char action[MAX_SIZE_ACTION];
   
-    
+    //handle the enum
     switch (a)
     {
     case CREATE: 
@@ -57,6 +57,7 @@ int writeInLog(double instant, action a, char info[]){
 
     
     snprintf(line, MAX_SIZE_INFO, "%-8.2f - %-8d - %-15s - %s \n", instant, pid, action, info);
+    
     if (write(fd, line, MAX_SIZE_INFO) == -1){
         fprintf(stderr, "Impossible to write\n"); 
         return 1; 

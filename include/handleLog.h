@@ -55,7 +55,7 @@ void getLogName(char * logName, char* logFile);
  * @param instant The time the information is being written
  * @param a Enumerator indicating the action 
  * @param info Extra information
- * @return int 
+ * @return int 1 upon error and 0 on success
  */
 int writeInLog(double instant, action a, char * info); 
 

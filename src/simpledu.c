@@ -22,10 +22,10 @@ int main(int argc, char *argv[], char *envp[]) {
         fprintf(stderr, "Error in createLog\n"); 
         exit(1); 
     } 
-    char h[7] = "house"; 
-    writeInLog(14.4545, CREATE, h);
 
-    close(fd);
+    //testing call
+    //writeInLog(14.4545, CREATE, "house");
+
 
     if (parse_arguments(argc, argv, &opt)) {
         fprintf(stderr, "Invalid command\n");
@@ -38,6 +38,7 @@ int main(int argc, char *argv[], char *envp[]) {
         fprintf(stderr, "Show directory error\n");
         exit(1); 
     }
-    
+
+    close(fd);
     exit(0);
 }
