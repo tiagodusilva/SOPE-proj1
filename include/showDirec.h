@@ -10,8 +10,8 @@
 #include "../include/utils.h"
 
 
-#define PATH_SIZE_MAX       500
-
+#define PATH_SIZE_MAX       540
+#define PATH_MAX_CPY        180
 /**
  * @brief This function handles the task of showing files information
  * 

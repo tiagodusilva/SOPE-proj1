@@ -9,6 +9,8 @@ int showDirec(Options * opt){
     }
 
     while((dirent = readdir(direc)) != NULL){
+        //do not show the .. directory
+        if (strcmp(dirent->d_name, "..") == 0) continue;
         printf("%-25s", dirent->d_name);  
         if (printFileState(opt, dirent->d_name))  
             return 1; 
@@ -30,9 +32,9 @@ int printFileState(Options* opt, char *name){
 
     //get the complete path of the file called "name"
     char completePath[PATH_SIZE_MAX] = ""; 
-    strcpy(completePath, opt->path);
-    strcat(completePath, "/");
-    strcat(completePath, name);  
+    strncpy(completePath, opt->path, PATH_MAX_CPY);
+    strncat(completePath, "/", PATH_MAX_CPY);
+    strncat(completePath, name, PATH_MAX_CPY);  
 
 
     if (stat(completePath, &s) < 0){
