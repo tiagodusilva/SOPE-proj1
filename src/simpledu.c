@@ -17,6 +17,6 @@ int main(int argc, char *argv[], char *envp[]) {
     }
 
     print_options(&opt);
-    showDirec(&opt); 
+    if (showDirec(&opt)) exit(1); 
     exit(0);
 }
