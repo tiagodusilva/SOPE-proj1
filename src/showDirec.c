@@ -4,6 +4,17 @@ static inline void print_file(long int size, char *s) {
     printf("%-8ld%s\n", size, s);
 }
 
+static inline long int calculate_size(struct stat *st, Options *opt) {
+        // Quick ceiling q = (x + y - 1) / y;
+        if (opt->apparent_size) {
+            return (st->st_size + opt->block_size - 1) / opt->block_size;
+        }
+        else {
+            return (((st->st_size + st->st_blksize - 1) / st->st_blksize) * st->st_blksize
+                + opt->block_size - 1) / opt->block_size;
+        }
+}
+
 int showDirec(Options * opt){
     DIR * direc;
     struct dirent * dirent;
@@ -32,12 +43,13 @@ int showDirec(Options * opt){
 
 long int analyze_file(Options* opt, char *name){
     struct stat st; 
-    long int size; 
+    long int size = 0; 
 
     //get the complete path of the file called "name"
     char completePath[PATH_SIZE_MAX] = ""; 
     strcpy(completePath, opt->path);
-    strcat(completePath, "/");
+    if (completePath[strlen(completePath) - 1] != '/')
+        strcat(completePath, "/");
     strcat(completePath, name);
 
     if (stat(completePath, &st) < 0){
@@ -46,26 +58,25 @@ long int analyze_file(Options* opt, char *name){
     }
 
     if (S_ISREG(st.st_mode)) {
-        // Quick ceiling q = (x + y - 1) / y;
-        if (opt->apparent_size) {
-            size = (st.st_size + opt->block_size - 1) / opt->block_size;
-        }
-        else {
-            size = (((st.st_size + st.st_blksize - 1) / st.st_blksize)
-                + opt->block_size - 1) / opt->block_size;
-        }
+        size = calculate_size(&st, opt);
         if (opt->all) {
             //prints the size information according to the options
             print_file(size, completePath);   
         }
     }
-    else if (S_ISDIR(st.st_mode) && strcmp(name, ".") && strcmp(name, "..")) {
-        fprintf(stderr, "Unhandled directory\n");
-        fprintf(stderr, completePath);
+    else if (S_ISDIR(st.st_mode) && strcmp(name, "..")) {
+        if (strcmp(name, ".")) {
+            // If it's not a '.' file
+            fprintf(stderr, "Unhandled directory\n");
+            fprintf(stderr, "%s\n", completePath);
+        }
+        else {
+            size = calculate_size(&st, opt);
+        }
     }
     else if (S_ISLNK(st.st_mode)) {
         fprintf(stderr, "Unhandled symlink\n");
-        fprintf(stderr, completePath);
+        fprintf(stderr, "%s\n", completePath);
         return 1;
     }
 
