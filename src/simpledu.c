@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 
 #include "../include/utils.h"
+#include "../include/showDirec.h"
 
 int main(int argc, char *argv[], char *envp[]) {
     Options opt;
@@ -16,5 +17,6 @@ int main(int argc, char *argv[], char *envp[]) {
     }
 
     print_options(&opt);
+    showDirec(&opt); 
     exit(0);
 }
