@@ -12,14 +12,14 @@
 int main(int argc, char *argv[], char *envp[]) {
     Options opt;
     if (parse_arguments(argc, argv, &opt)) {
-        printf("Invalid command\n");
+        fprintf(stderr, "Invalid command\n");
         exit(1);
     }
 
     print_options(&opt);
 
     if (showDirec(&opt)){
-        printf("Show directory error\n");
+        fprintf(stderr, "Show directory error\n");
         exit(1); 
     }
     

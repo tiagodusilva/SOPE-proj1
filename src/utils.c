@@ -31,6 +31,7 @@ void print_options(Options *opt) {
 // Flags:
 // a (all), b (bytes), -L (dereference), S (separate-dirs)
 // B (block-size=), max-depth=N
+
 int parse_arguments(int argc, char *argv[], Options *opt) {
     
     if (opt == NULL)
@@ -65,11 +66,11 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
             else if (strcmp(argv[cur_arg], "-B") == 0) {
                 ++cur_arg;
                 if (cur_arg >= argc) {
-                    printf("Argument -B requires an additional integer argument\n");
+                    fprintf(stderr, "Argument -B requires an additional integer argument\n");
                     return 1;
                 }
                 else if (!is_num(argv[cur_arg])) {
-                    printf("Parameter must be an integer (given \"%s\")\n", argv[cur_arg]);
+                    fprintf(stderr, "Parameter must be an integer (given \"%s\")\n", argv[cur_arg]);
                     return 1;
                 }
                 else {
@@ -84,7 +85,7 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
                 }
                 else
                 {
-                    printf("Argument must be an integer (given \"%s\")\n", argv[cur_arg] + BLOCK_SIZE_STR_OFFSET);
+                    fprintf(stderr, "Argument must be an integer (given \"%s\")\n", argv[cur_arg] + BLOCK_SIZE_STR_OFFSET);
                     return 1;
                 }
             }
@@ -94,7 +95,7 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
                     opt->depth_val = atoi(argv[cur_arg] + MAX_DEPTH_STR_OFFSET);
                 }
                 else {
-                    printf("Argument must be an integer (given \"%s\")\n", argv[cur_arg] + MAX_DEPTH_STR_OFFSET);
+                    fprintf(stderr, "Argument must be an integer (given \"%s\")\n", argv[cur_arg] + MAX_DEPTH_STR_OFFSET);
                     return 1;
                 }
             }
