@@ -8,9 +8,17 @@
 
 #include "../include/utils.h"
 #include "../include/showDirec.h"
+#include "../include/handleLog.h"
 
 int main(int argc, char *argv[], char *envp[]) {
     Options opt;
+
+    char *logName = getenv("LOG_FILENAME");
+    if (createLog(logName) < 0){
+        fprintf(stderr, "Error in createLog\n"); 
+        exit(1); 
+    } 
+
     if (parse_arguments(argc, argv, &opt)) {
         fprintf(stderr, "Invalid command\n");
         exit(1);
