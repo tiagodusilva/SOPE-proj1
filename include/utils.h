@@ -18,7 +18,7 @@
  * depth_val should only be used when max_depth is set to true
  */
 typedef struct cmd_options {
-    bool all, dereference, separate_dirs, max_depth;
+    bool all, dereference, separate_dirs, max_depth, apparent_size;
     int block_size, depth_val;
     char *path;
 } Options;

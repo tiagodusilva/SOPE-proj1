@@ -20,6 +20,7 @@ void print_options(Options *opt) {
     printf("Block size: %d\n", opt->block_size);
     printf("Flags:\n");
     printf("\t--all (-a): %d\n", opt->all);
+    printf("\t'apparent_size' (from -b or --bytes): %d\n", opt->apparent_size);
     printf("\t--dereference (-L): %d\n", opt->dereference);
     printf("\t--separate-dirs (-S): %d\n", opt->separate_dirs);
     if (!opt->max_depth)
@@ -44,6 +45,7 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
     opt->dereference = false;
     opt->max_depth = false;
     opt->separate_dirs = false;
+    opt->apparent_size = false;
 
     if (argc <= 0) {
         return 1;
@@ -56,6 +58,7 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
             }
             else if (strcmp(argv[cur_arg], "-b") == 0 || strcmp(argv[cur_arg], "--bytes") == 0) {
                 opt->block_size = 1;
+                opt->apparent_size = 1;
             }
             else if (strcmp(argv[cur_arg], "-L") == 0 || strcmp(argv[cur_arg], "--dereference") == 0) {
                 opt->dereference = true;
