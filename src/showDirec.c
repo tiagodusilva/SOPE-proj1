@@ -87,10 +87,9 @@ long int analyze_file(Options* opt, char *name){
         return 1;
     }
     else if (S_ISLNK(st.st_mode)) {
-        size = calculate_size(&st, opt);
         if (opt->all) {
             //prints the size information according to the options
-            print_file(size, completePath);   
+            print_file(0, completePath);   
         }
     }
 
