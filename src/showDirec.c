@@ -74,22 +74,38 @@ long int analyze_file(Options* opt, char *name){
             size = calculate_size(&st, opt);
         }
     }
-    else if (S_ISLNK(st.st_mode) && opt->dereference) {
-        /*
-        if (stat(completePath, &st) < 0){
-            fprintf(stderr, "Not possible to get file stat\n"); 
-            return -1; 
-        }
-        //Recursion?
-        */
-        fprintf(stderr, "Unhandled symlink - Follow\n");
-        fprintf(stderr, "%s\n", completePath);
-        return 1;
-    }
     else if (S_ISLNK(st.st_mode)) {
-        if (opt->all) {
-            //prints the size information according to the options
-            print_file(0, completePath);   
+        
+        if (opt->dereference) {
+            // Follow symbolic link
+            
+            struct stat link_st;
+
+            if (stat(completePath, &link_st) < 0){
+                fprintf(stderr, "Not possible to get symbolic link's file stat\n"); 
+                return -1; 
+            }
+
+            if (S_ISREG(link_st.st_mode)) {
+                size = calculate_size(&link_st, opt);
+                if (opt->all) {
+                    //prints the size information according to the options
+                    print_file(size, completePath);   
+                }
+            }
+            else if (S_ISDIR(link_st.st_mode)) {
+                fprintf(stderr, "Unhandled symlink directory - Follow\n");
+                fprintf(stderr, "%s\n", completePath);
+                return 1;
+            }
+
+        }
+        else {
+            // Don't follow symbolic link
+            if (opt->all) {
+                //prints the size information according to the options
+                print_file(0, completePath);   
+            }
         }
     }
 
