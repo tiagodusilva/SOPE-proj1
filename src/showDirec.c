@@ -83,7 +83,7 @@ long int analyze_file(Options* opt, char *name){
 
             if (stat(completePath, &link_st) < 0){
                 fprintf(stderr, "Not possible to get symbolic link's file stat\n"); 
-                return -1; 
+                return -1;
             }
 
             if (S_ISREG(link_st.st_mode)) {
@@ -96,7 +96,6 @@ long int analyze_file(Options* opt, char *name){
             else if (S_ISDIR(link_st.st_mode)) {
                 fprintf(stderr, "Unhandled symlink directory - Follow\n");
                 fprintf(stderr, "%s\n", completePath);
-                return 1;
             }
 
         }
