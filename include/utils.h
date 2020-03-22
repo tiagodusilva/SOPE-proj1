@@ -11,6 +11,14 @@
 /** @brief The offset of the number parameter in the '--max-depth=N' argument*/
 #define MAX_DEPTH_STR_OFFSET 12
 
+/** @brief Index of the input side of a pipe */
+#define PIPE_READ 0
+/** @brief Index of the output side of a pipe */
+#define PIPE_WRITE 1
+
+/** @brief Max size of pipe */
+#define MAXLINE 4096
+
 /**
  * @brief Struct to keep track of the simpledu parameters to be used
  * @details The default parameters are:\n

@@ -72,14 +72,48 @@ long int analyze_file(Options* opt, char *name, char *envp[]){
             // fprintf(stderr, "Unhandled directory\n");
             // fprintf(stderr, "%s\n", completePath);
 
-            int id = fork(), aux = -1;
+            // Create pipe
+            int pipe_id[2];
+            if (pipe(pipe_id)) {
+                fprintf(stderr, "Failed to create pipe\n");
+                exit(1);
+            }
+
+            // Handles dup2 with stdout and pipe
+            int original_stdout = dup(STDOUT_FILENO);
+            dup2(pipe_id[PIPE_WRITE], STDOUT_FILENO);
+
+            // Fork process
+            int id = fork();
             if (id) {
                 // Parent
-                // Pipe stuff here
-                wait(&aux);
+                close(pipe_id[PIPE_WRITE]);
+                dup2(original_stdout, STDOUT_FILENO);
+
+                char *line = calloc(MAXLINE, sizeof(*line));
+                int read_ret, status, wait_ret;
+                while (wait_ret = waitpid(id, &status, WNOHANG), wait_ret == 0) {
+                    while (read_ret = read(pipe_id[PIPE_READ], line, MAXLINE), read_ret) {
+                        if (read_ret == -1) {
+                            fprintf(stderr, "Error while reading form the child's pipe\n");
+                            exit(1);
+                        }
+                        printf(line);
+                    }
+                }
+                if (wait_ret == -1) {
+                    fprintf(stderr, "Error in waitpid()\n");
+                }
+                close(pipe_id[PIPE_READ]);
+
+                if (!opt->separate_dirs) {
+                    size = atoi(line);
+                }
+
             }
             else {
                 // Child
+                close(pipe_id[PIPE_READ]);
                 exec_next_dir(completePath, opt, envp);
                 fprintf(stderr, "Failed to exec the folder '%s'", completePath);
                 exit(1);
@@ -121,8 +155,9 @@ long int analyze_file(Options* opt, char *name, char *envp[]){
             if (opt->all) {
                 //prints the size information according to the options
                 size = calculate_size(&st, opt);
+                size = 0;
                 print_file(size, completePath);   
-                printf("%ld\n", st.st_size);
+                // printf("%ld\n", st.st_size);
             }
         }
     }
