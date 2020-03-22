@@ -13,6 +13,18 @@ int createLog(char * logName){
     return 0;
 } 
 
+int openLog(char * logName){
+    char logfile[MAX_SIZE_LOG];
+    getLogName(logName, logfile); 
+     
+ 
+    if ((fd = open(logfile, O_WRONLY | O_SYNC | O_APPEND, S_IRUSR | S_IWUSR)) < 0){
+        fprintf(stderr, "Not possible to open file %s\n", logfile); 
+        return 1; 
+    }
+    
+    return 0;
+}
 
 void getLogName(char * logName, char* logFile){
 
@@ -23,7 +35,8 @@ void getLogName(char * logName, char* logFile){
 
 int writeInLog(double instant, action a, char *info){
     pid_t pid = getpid(); 
-    char line [MAX_SIZE_LINE] = {0};  
+
+    char line [MAX_SIZE_LINE] = "";  
     char action[MAX_SIZE_ACTION];
   
     //handle the enum
@@ -55,9 +68,7 @@ int writeInLog(double instant, action a, char *info){
         break;
     }
 
-    
     int sizeWritten = snprintf(line, MAX_SIZE_INFO, "%-8.2f - %-8d - %-15s - %s \n", instant, pid, action, info);
-    
     if (write(fd, line, sizeWritten) == -1){
         fprintf(stderr, "Impossible to write\n"); 
         return 1; 

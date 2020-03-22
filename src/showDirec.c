@@ -17,10 +17,11 @@ static inline long int calculate_size(struct stat *st, Options *opt) {
         }
 }
 
-int showDirec(Options * opt, char *envp[]) {
+int showDirec(Options * opt) {
     DIR * direc;
     struct dirent * dirent;
     long int dir_size = 0, tmp;
+    
 
     if ((direc = opendir(opt->path)) == NULL){  
         fprintf(stderr, "Not possible to open directory\n");
@@ -28,7 +29,7 @@ int showDirec(Options * opt, char *envp[]) {
     }
 
     while((dirent = readdir(direc)) != NULL){
-        if (tmp = analyze_file(opt, dirent->d_name, envp), tmp == -1)  
+        if (tmp = analyze_file(opt, dirent->d_name), tmp == -1)  
             return 1;
         dir_size += tmp;
     }
@@ -43,10 +44,9 @@ int showDirec(Options * opt, char *envp[]) {
     return 0;
 }
 
-long int analyze_file(Options* opt, char *name, char *envp[]){
+long int analyze_file(Options* opt, char *name){
     struct stat st; 
     long int size = 0; 
-    //writeInLog(17, CREATE, "picuinha"); 
     //printf("%d\n", getpid());
 
     //get the complete path of the file called "name"
@@ -116,7 +116,7 @@ long int analyze_file(Options* opt, char *name, char *envp[]){
             else {
                 // Child
                 close(pipe_id[PIPE_READ]);
-                exec_next_dir(completePath, opt, envp);
+                exec_next_dir(completePath, opt);
                 fprintf(stderr, "Failed to exec the folder '%s'", completePath);
                 exit(1);
             }

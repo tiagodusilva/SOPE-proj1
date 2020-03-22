@@ -71,4 +71,5 @@ int parse_arguments(int argc, char *argv[], Options *opt);
  * @param opt 
  * @param envp
  */
-void exec_next_dir(char *complete_path, Options *opt, char *envp[]);
+
+void exec_next_dir(char *complete_path, Options *opt);

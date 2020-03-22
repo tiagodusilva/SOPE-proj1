@@ -16,12 +16,13 @@ int fd; /** @brief File descriptor for the log file**/
 int main(int argc, char *argv[], char *envp[]) {
     Options opt;
 
-    char * father; 
+    char * fatherPid;                                   
     pid_t pid = getpid();
     char pid_string[20];  
+    char *logName = getenv("LOG_FILENAME");
     sprintf(pid_string, "%d", pid); 
 
-    if ((father = getenv("FATHER")) == NULL){           //father creates a new env variable with the pin as value
+    if ((fatherPid = getenv("FATHER")) == NULL){                    //Father creates a new env variable with it's pin as value
         if (putenv("FATHER") < 0){
             fprintf(stderr, "Not possible to create FATHER ENV\n");
             exit(1); 
@@ -30,19 +31,24 @@ int main(int argc, char *argv[], char *envp[]) {
             fprintf(stderr, "Not possible to set FATHER ENV\n"); 
             exit(1); 
         } 
-        father = pid_string; 
+        fatherPid = pid_string; 
     }
 
-    if (strcmp(pid_string, father) == 0){               //if actual pin equals to the father pin, then creates file
-        char *logName = getenv("LOG_FILENAME");
+    if (strcmp(pid_string, fatherPid) == 0){                        //If actual pin equals to the father pin, then creates file
         if (createLog(logName)){
             fprintf(stderr, "Error in createLog\n"); 
             exit(1);  
         }
     }
+    else{
+        if(openLog(logName)){
+            fprintf(stderr, "Error opening log file\n");
+            exit(1);
+        }
+    }
 
     //testing call
-    //writeInLog(17, CREATE, "picuinha"); 
+    writeInLog(17, CREATE, "NONE"); 
 
 
     if (parse_arguments(argc, argv, &opt)) {
@@ -52,17 +58,17 @@ int main(int argc, char *argv[], char *envp[]) {
 
     // print_options(&opt);
 
-    if (showDirec(&opt, envp)){
+    if (showDirec(&opt)){
         fprintf(stderr, "Show directory error\n");
         exit(1); 
     }
 
-    if (strcmp(pid_string, father) == 0)                //delete father env variable
+    if (strcmp(pid_string, fatherPid) == 0){               //Delete father env variable
         if (unsetenv("FATHER") < 0){
             fprintf(stderr, "Not possible to remove FATHER ENV\n");
             exit(1); 
         }
-
+    }
 
     close(fd);
     exit(0);

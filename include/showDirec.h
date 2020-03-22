@@ -21,7 +21,7 @@
  * @param opt Options given as parameters
  * @return int 0 if success and 1 upon error
  */
-int showDirec(Options *opt, char *envp[]);
+int showDirec(Options *opt);
 
 /**
  * @brief For each file received, it prints the file information i.e size.  
@@ -30,6 +30,6 @@ int showDirec(Options *opt, char *envp[]);
  * @param name Name of the file in the folder
  * @return lont int The file's size upon success, -1 otherwise
  */
-long int analyze_file(Options* opt, char *name, char*envp[]);
+long int analyze_file(Options* opt, char *name);
 
 #endif //SOPE_PROJ1_SHOWFILE_H
