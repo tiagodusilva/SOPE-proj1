@@ -2,6 +2,8 @@
 
 #include <stdbool.h>
 
+/** @brief Application name */
+#define APPLICATION_NAME "simpledu"
 /** @brief The default block size to be used */
 #define DEFAULT_BLOCK_SIZE 1024
 /** @brief The offset of the number parameter in the '--block-size=N' argument */
@@ -19,7 +21,8 @@
  */
 typedef struct cmd_options {
     bool all, dereference, separate_dirs, max_depth, apparent_size;
-    int block_size, depth_val;
+    long block_size;
+    int depth_val;
     char *path;
 } Options;
 
@@ -52,3 +55,12 @@ void print_options(Options *opt);
  * @return int 0 upon succes, 1 otherwise 
  */
 int parse_arguments(int argc, char *argv[], Options *opt);
+
+/**
+ * @brief Calls exec onto 
+ * 
+ * @param complete_path 
+ * @param opt 
+ * @param envp
+ */
+void exec_next_dir(char *complete_path, Options *opt, char *envp[]);

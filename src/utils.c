@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 bool is_num(char *s) {
     if (*s == '\0')
@@ -15,9 +16,17 @@ bool is_num(char *s) {
     return true;
 }
 
+int get_num_digits(long int n) {
+    int res = 1;
+    while (n = n / 10, n) {
+        ++res;
+    }
+    return res;
+}
+
 void print_options(Options *opt) {
     printf("Current path: %s\n", opt->path);
-    printf("Block size: %d\n", opt->block_size);
+    printf("Block size: %ld\n", opt->block_size);
     printf("Flags:\n");
     printf("\t--all (-a): %d\n", opt->all);
     printf("\t'apparent_size' (from -b or --bytes): %d\n", opt->apparent_size);
@@ -115,4 +124,57 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
     }
 
     return 0;
+}
+
+void exec_next_dir(char *complete_path, Options *opt, char *envp[]) {
+
+    // Max num of args is 10
+    char *vec[10];
+    int i = 2;
+
+    vec[0] = APPLICATION_NAME;
+    vec[1] = complete_path;
+
+    if (opt->all) {
+        vec[i] = "-a";
+        ++i;
+    }
+
+    if (opt->apparent_size) {
+        vec[i] = "--apparent-size";
+        ++i;
+    }
+
+    if (opt->dereference) {
+        vec[i] = "-L";
+        ++i;
+    }
+
+    if (opt->separate_dirs) {
+        vec[i] = "-S";
+        ++i;
+    }
+
+    if (opt->block_size != DEFAULT_BLOCK_SIZE) {
+        vec[i] = "-B";
+        ++i;
+        int len = get_num_digits(opt->block_size);
+        vec[i] = calloc(len + 1, sizeof(*vec[i]));
+        sprintf(vec[i], "%ld", opt->block_size);
+        ++i;
+    }
+
+    if (opt->max_depth) {
+        int depth_val = opt->depth_val - 1;
+        depth_val = depth_val < 0 ? 0 : depth_val;
+
+        int len = get_num_digits(depth_val);
+        vec[i] = calloc(len + 1 + 12, sizeof(*vec[i]));
+        vec[i] = "--max-depth=";
+        sprintf(vec[i], "%ld", opt->block_size);
+        ++i;
+    }
+
+    vec[i] = NULL;
+    execve(vec[0], vec, envp);
 }

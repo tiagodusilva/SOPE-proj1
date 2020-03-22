@@ -34,7 +34,7 @@ int main(int argc, char *argv[], char *envp[]) {
 
     // print_options(&opt);
 
-    if (showDirec(&opt)){
+    if (showDirec(&opt, envp)){
         fprintf(stderr, "Show directory error\n");
         exit(1); 
     }

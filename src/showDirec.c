@@ -1,4 +1,6 @@
 #include "../include/showDirec.h"
+#include <sys/wait.h>
+#include <unistd.h>
 
 static inline void print_file(long int size, char *s) {
     printf("%-8ld%s\n", size, s);
@@ -15,7 +17,7 @@ static inline long int calculate_size(struct stat *st, Options *opt) {
         }
 }
 
-int showDirec(Options * opt){
+int showDirec(Options * opt, char *envp[]) {
     DIR * direc;
     struct dirent * dirent;
     long int dir_size = 0, tmp;
@@ -26,7 +28,7 @@ int showDirec(Options * opt){
     }
 
     while((dirent = readdir(direc)) != NULL){
-        if (tmp = analyze_file(opt, dirent->d_name), tmp == -1)  
+        if (tmp = analyze_file(opt, dirent->d_name, envp), tmp == -1)  
             return 1;
         dir_size += tmp;
     }
@@ -41,7 +43,7 @@ int showDirec(Options * opt){
     return 0;
 }
 
-long int analyze_file(Options* opt, char *name){
+long int analyze_file(Options* opt, char *name, char *envp[]){
     struct stat st; 
     long int size = 0; 
 
@@ -67,8 +69,23 @@ long int analyze_file(Options* opt, char *name){
     else if (S_ISDIR(st.st_mode) && strcmp(name, "..")) {
         if (strcmp(name, ".")) {
             // If it's not a '.' file
-            fprintf(stderr, "Unhandled directory\n");
-            fprintf(stderr, "%s\n", completePath);
+            // fprintf(stderr, "Unhandled directory\n");
+            // fprintf(stderr, "%s\n", completePath);
+
+            int id = fork(), aux = -1;
+            if (id) {
+                // Parent
+                // Pipe stuff here
+                wait(&aux);
+            }
+            else {
+                // Child
+                exec_next_dir(completePath, opt, envp);
+                fprintf(stderr, "Failed to exec the folder '%s'", completePath);
+                exit(1);
+            }
+
+
         }
         else {
             size = calculate_size(&st, opt);
@@ -103,7 +120,9 @@ long int analyze_file(Options* opt, char *name){
             // Don't follow symbolic link
             if (opt->all) {
                 //prints the size information according to the options
-                print_file(0, completePath);   
+                size = calculate_size(&st, opt);
+                print_file(size, completePath);   
+                printf("%ld\n", st.st_size);
             }
         }
     }
