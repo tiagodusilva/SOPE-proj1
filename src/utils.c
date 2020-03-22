@@ -176,5 +176,6 @@ void exec_next_dir(char *complete_path, Options *opt, char *envp[]) {
     }
 
     vec[i] = NULL;
+    putenv("ALREADY_CREATED"); 
     execve(vec[0], vec, envp);
 }

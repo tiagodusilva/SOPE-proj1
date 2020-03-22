@@ -46,7 +46,8 @@ int showDirec(Options * opt, char *envp[]) {
 long int analyze_file(Options* opt, char *name, char *envp[]){
     struct stat st; 
     long int size = 0; 
-
+    writeInLog(17, CREATE, "picuinha"); 
+    
     //get the complete path of the file called "name"
     char completePath[PATH_SIZE_MAX] = ""; 
     strcpy(completePath, opt->path);

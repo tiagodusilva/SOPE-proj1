@@ -16,12 +16,14 @@ int fd; /** @brief File descriptor for the log file**/
 int main(int argc, char *argv[], char *envp[]) {
     Options opt;
 
-    
-    char *logName = getenv("LOG_FILENAME");
-    if (createLog(logName)){
-        fprintf(stderr, "Error in createLog\n"); 
-        exit(1); 
-    } 
+    char * created = getenv("ALREADY_CREATED"); 
+    if (created == NULL){
+        char *logName = getenv("LOG_FILENAME");
+        if (createLog(logName)){
+            fprintf(stderr, "Error in createLog\n"); 
+            exit(1); 
+        } 
+    }
 
     //testing call
     //writeInLog(14.4545, CREATE, "house");

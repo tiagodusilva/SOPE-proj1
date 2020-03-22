@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include "../include/utils.h"
+#include "../include/handleLog.h"
 
 
 #define PATH_SIZE_MAX       540
