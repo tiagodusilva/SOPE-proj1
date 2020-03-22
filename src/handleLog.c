@@ -56,9 +56,9 @@ int writeInLog(double instant, action a, char *info){
     }
 
     
-    snprintf(line, MAX_SIZE_INFO, "%-8.2f - %-8d - %-15s - %s \n", instant, pid, action, info);
+    int sizeWritten = snprintf(line, MAX_SIZE_INFO, "%-8.2f - %-8d - %-15s - %s \n", instant, pid, action, info);
     
-    if (write(fd, line, MAX_SIZE_INFO) == -1){
+    if (write(fd, line, sizeWritten) == -1){
         fprintf(stderr, "Impossible to write\n"); 
         return 1; 
     }
