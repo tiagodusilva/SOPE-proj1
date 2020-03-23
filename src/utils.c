@@ -178,3 +178,13 @@ void exec_next_dir(char *complete_path, Options *opt) {
     vec[i] = NULL;
     execv(vec[0], vec);
 }
+
+int askEnd(){
+    char option[8000]; 
+    while(1){
+        scanf("%s", option); 
+        if (strcmp(option, "Y") == 0 || strcmp(option, "y") == 0) return 1; 
+        if (strcmp(option, "N") == 0 || strcmp(option, "n") == 0) return 0; 
+        printf("Invalid input. Try again [Y|N]\n");
+    }
+}

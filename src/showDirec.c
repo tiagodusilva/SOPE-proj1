@@ -3,8 +3,8 @@
 #include <unistd.h>
 
 
-int childProcess[INT_MAX];
-int sizeChildProcess; 
+extern int childProcess[MAX_SIZE_LINE];
+extern int sizeChildProcess; 
 
 static inline void print_file(long int size, char *s) {
     printf("%-8ld%s\n", size, s);
@@ -93,6 +93,7 @@ long int analyze_file(Options* opt, char *name){
             int id = fork();
             if (id) {
                 // Parent
+                childProcess[sizeChildProcess++] = id; 
                 close(pipe_id[PIPE_WRITE]);
                 dup2(original_stdout, STDOUT_FILENO);
 
@@ -124,7 +125,7 @@ long int analyze_file(Options* opt, char *name){
                     fprintf(stderr, "Error on setpgrp\n");
                     exit(1); 
                 }
-                
+
                 // Child
                 close(pipe_id[PIPE_READ]);
                 exec_next_dir(completePath, opt);

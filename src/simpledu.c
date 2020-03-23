@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -13,17 +14,40 @@
 
 int fd; /** @brief File descriptor for the log file**/  
 
-extern int childProcess[INT_MAX];
-extern int sizeChildProcess; 
+int childProcess[MAX_SIZE_LINE];
+int sizeChildProcess; 
+
+void handlerFather(int signo){
+    printf("Interrupt process? [Y|N]\n");
+    writeInLog(42, RECV_SIGNAL, "FATHER");
+    if (!askEnd()) return; 
+    int i; 
+    for (i = 0; i < sizeChildProcess; i++) {
+        writeInLog(43, SEND_SIGNAL, "FATHER"); 
+        kill(childProcess[i], SIGUSR1); 
+    }
+    signal(SIGINT, SIG_DFL);
+    raise(SIGINT); 
+}
+void handlerChild(int signo){
+    int i; 
+    writeInLog(44, RECV_SIGNAL, "CHILD");
+    for (i = 0; i < sizeChildProcess; i++){
+        writeInLog(43, SEND_SIGNAL, "CHILD"); 
+        kill(childProcess[i], SIGUSR1); 
+    }
+    raise(SIGINT); 
+}
 
 int main(int argc, char *argv[], char *envp[]) {
     Options opt;
-                                  
+    sizeChildProcess = 0;                              
     pid_t pid = getpid();
     char pid_string[20];  
     char *logName = getenv("LOG_FILENAME");
     sprintf(pid_string, "%d", pid); 
     bool isFather = false; 
+    struct sigaction act; 
 
     
     if (getenv("SIMPLEDUFATHER") == NULL){                    //Father creates a new env variable with it's pin as value
@@ -51,8 +75,29 @@ int main(int argc, char *argv[], char *envp[]) {
         }
     }
 
-    //testing call
-    writeInLog(17, CREATE, "NONE"); 
+    //testing call 
+
+    //Handle signal -------------------------------
+    if (sigemptyset(&act.sa_mask) < 0){
+        fprintf(stderr, "Error on sigemptyset\n");
+        exit(1); 
+    }
+    if (isFather){
+        writeInLog(17, CREATE, "FATHER");
+        act.sa_handler = handlerFather;
+        if (sigaction(SIGINT, &act, NULL) < 0){
+            fprintf(stderr, "Error on father sigaction\n"); 
+            exit(1); 
+        } 
+    }
+    else{
+        writeInLog(17, CREATE, "CHILD");
+        act.sa_handler = handlerChild; 
+        if (sigaction(SIGUSR1, &act, NULL) < 0){
+            fprintf(stderr, "Error on child sigaction\n");
+            exit(1); 
+        }
+    }
 
 
     if (parse_arguments(argc, argv, &opt)) {
@@ -74,7 +119,12 @@ int main(int argc, char *argv[], char *envp[]) {
         }
     }
 
-    sleep(2);
-    close(fd);
+    //sleep(1);
+    if (isFather) {
+        writeInLog(10, EXIT, "FATHER");
+        close(fd);
+    }
+    else writeInLog(10, EXIT, "CHILD");
+    sleep(1);
     exit(0);
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <limits.h>
 
 /** @brief Application name */
 #define APPLICATION_NAME "simpledu"
@@ -73,3 +74,5 @@ int parse_arguments(int argc, char *argv[], Options *opt);
  */
 
 void exec_next_dir(char *complete_path, Options *opt);
+
+int askEnd(); 

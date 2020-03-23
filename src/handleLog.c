@@ -69,8 +69,9 @@ int writeInLog(double instant, action a, char *info){
     }
 
     int sizeWritten = snprintf(line, MAX_SIZE_INFO, "%-8.2f - %-8d - %-15s - %s \n", instant, pid, action, info);
+    lseek(fd, +0, SEEK_END); 
     if (write(fd, line, sizeWritten) == -1){
-        fprintf(stderr, "Impossible to write\n"); 
+        fprintf(stderr, "Impossible to write on folder\n"); 
         return 1; 
     }
     return 0; 
