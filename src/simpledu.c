@@ -14,43 +14,65 @@
 
 int fd; /** @brief File descriptor for the log file**/  
 
-int childProcess[MAX_SIZE_LINE];
-int sizeChildProcess; 
+int childProcess[MAX_SIZE_LINE];    /** @brief Pid of direct children */
+int sizeChildProcess;               /** @brief size of childProcess vector*/
+bool isFather = false;              /** @brief if the process is the main father*/
 
+/**
+ * @brief It handles the father SIGINT interrupt
+ * 
+ */
 void handlerFather(int signo){
-    printf("Interrupt process? [Y|N]\n");
-    writeInLog(42, RECV_SIGNAL, "FATHER");
-    if (!askEnd()) return; 
-    int i; 
-    for (i = 0; i < sizeChildProcess; i++) {
-        writeInLog(43, SEND_SIGNAL, "FATHER"); 
-        kill(childProcess[i], SIGUSR1); 
+    //STOP children
+    for (int i = 0; i < sizeChildProcess; i++){
+        writeInLog(42, SEND_SIGNAL, "FATHER SEND STOP"); 
+        killpg(childProcess[i], SIGSTOP);        
     }
+        
+    printf("Interrupt process? [Y|N]\n");
+    if (!askEnd()) {                                    //User chooses if wishes to proceed with sigint
+        //CONTINUE children
+        for (int i = 0; i < sizeChildProcess; i++){
+            writeInLog(42, SEND_SIGNAL, "FATHER SEND CONTINUE"); 
+            killpg(childProcess[i], SIGCONT);       
+        } 
+        return; 
+    }
+
+    //SIGINT
+    writeInLog(42, RECV_SIGNAL, "FATHER");
+    for (int i = 0; i < sizeChildProcess; i++) {
+        writeInLog(43, SEND_SIGNAL, "FATHER SEND SIGINT"); 
+        killpg(childProcess[i], SIGUSR1); 
+    }
+
     signal(SIGINT, SIG_DFL);
     raise(SIGINT); 
 }
+
+/**
+ * @brief Handler for SIGINT for children
+ * 
+ */
 void handlerChild(int signo){
-    int i; 
-    writeInLog(44, RECV_SIGNAL, "CHILD");
-    for (i = 0; i < sizeChildProcess; i++){
-        writeInLog(43, SEND_SIGNAL, "CHILD"); 
-        kill(childProcess[i], SIGUSR1); 
-    }
+    writeInLog(44, RECV_SIGNAL, "CHILD BREAK");
     raise(SIGINT); 
 }
 
-int main(int argc, char *argv[], char *envp[]) {
-    Options opt;
-    sizeChildProcess = 0;                              
-    pid_t pid = getpid();
-    char pid_string[20];  
-    char *logName = getenv("LOG_FILENAME");
-    sprintf(pid_string, "%d", pid); 
-    bool isFather = false; 
-    struct sigaction act; 
 
+int main(int argc, char *argv[], char *envp[]) {
+    Options opt;                                                /** @brief Parameters of execution */ 
+    struct sigaction act;                                        
+    char *logName = getenv("LOG_FILENAME");
+    pid_t pid = getpid();                                                
+    char pid_string[20];  
+    sizeChildProcess = 0;                                              
+
+    sprintf(pid_string, "%d", pid); 
     
-    if (getenv("SIMPLEDUFATHER") == NULL){                    //Father creates a new env variable with it's pin as value
+
+    //Handle log file -------------------------
+    if (getenv("SIMPLEDUFATHER") == NULL){                      //Father creates a new env variable with it's pin as value
         isFather = true; 
         if (putenv("SIMPLEDUFATHER") < 0){
             fprintf(stderr, "Not possible to create FATHER ENV\n");
@@ -62,7 +84,7 @@ int main(int argc, char *argv[], char *envp[]) {
         } 
     }
 
-    if (isFather){                        //If actual pin equals to the father pin, then creates file
+    if (isFather){                                              //If actual pin equals to the father pin, then creates file
         if (createLog(logName)){
             fprintf(stderr, "Error in createLog\n"); 
             exit(1);  
@@ -74,8 +96,7 @@ int main(int argc, char *argv[], char *envp[]) {
             exit(1);
         }
     }
-
-    //testing call 
+    //---------------------------------------------
 
     //Handle signal -------------------------------
     if (sigemptyset(&act.sa_mask) < 0){
@@ -94,37 +115,34 @@ int main(int argc, char *argv[], char *envp[]) {
         writeInLog(17, CREATE, "CHILD");
         act.sa_handler = handlerChild; 
         if (sigaction(SIGUSR1, &act, NULL) < 0){
-            fprintf(stderr, "Error on child sigaction\n");
+            fprintf(stderr, "Error on child sigaction Sigint\n");
             exit(1); 
         }
     }
 
+    //---------------------------------------------
 
     if (parse_arguments(argc, argv, &opt)) {
         fprintf(stderr, "Invalid command\n");
         exit(1);
     }
 
-    // print_options(&opt);
-
     if (showDirec(&opt)){
         fprintf(stderr, "Show directory error\n");
         exit(1); 
     }
 
-    if (isFather){               //Delete father env variable
+    if (isFather){                                                  //Delete father env variable
         if (unsetenv("SIMPLEDUFATHER") < 0){
             fprintf(stderr, "Not possible to remove FATHER ENV\n");
             exit(1); 
         }
     }
 
-    //sleep(1);
     if (isFather) {
         writeInLog(10, EXIT, "FATHER");
         close(fd);
     }
     else writeInLog(10, EXIT, "CHILD");
-    sleep(1);
     exit(0);
 }

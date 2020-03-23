@@ -5,6 +5,7 @@
 
 extern int childProcess[MAX_SIZE_LINE];
 extern int sizeChildProcess; 
+extern bool isFather; 
 
 static inline void print_file(long int size, char *s) {
     printf("%-8ld%s\n", size, s);
@@ -101,8 +102,8 @@ long int analyze_file(Options* opt, char *name){
                 int read_ret, status, wait_ret;
                 while (wait_ret = waitpid(id, &status, WNOHANG), wait_ret == 0) {
                     while (read_ret = read(pipe_id[PIPE_READ], line, MAXLINE), read_ret) {
-                        if (read_ret == -1) {
-                            fprintf(stderr, "Error while reading form the child's pipe\n");
+                        if (read_ret == -1 && read_ret != EINTR) {
+                            fprintf(stderr, "Error while reading form the child's pipe %s\n", strerror(errno));
                             exit(1);
                         }
                         printf(line);
@@ -119,11 +120,13 @@ long int analyze_file(Options* opt, char *name){
 
             }
             else {
-                //Change group id of the child 
-                int newgrp; 
-                if((newgrp = setpgrp()) < 0){
-                    fprintf(stderr, "Error on setpgrp\n");
-                    exit(1); 
+                //Change group id of the children directly linked to the father 
+                if (isFather){
+                    int newgrp; 
+                    if((newgrp = setpgrp()) < 0){
+                        fprintf(stderr, "Error on setpgrp\n");
+                        exit(1); 
+                    }
                 }
 
                 // Child

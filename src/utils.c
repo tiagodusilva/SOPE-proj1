@@ -179,8 +179,9 @@ void exec_next_dir(char *complete_path, Options *opt) {
     execv(vec[0], vec);
 }
 
+
 int askEnd(){
-    char option[8000]; 
+    char option[MAXLINE]; 
     while(1){
         scanf("%s", option); 
         if (strcmp(option, "Y") == 0 || strcmp(option, "y") == 0) return 1; 
