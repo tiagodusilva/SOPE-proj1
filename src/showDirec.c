@@ -2,6 +2,10 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+
+int childProcess[INT_MAX];
+int sizeChildProcess; 
+
 static inline void print_file(long int size, char *s) {
     printf("%-8ld%s\n", size, s);
 }
@@ -114,6 +118,13 @@ long int analyze_file(Options* opt, char *name){
 
             }
             else {
+                //Change group id of the child 
+                int newgrp; 
+                if((newgrp = setpgrp()) < 0){
+                    fprintf(stderr, "Error on setpgrp\n");
+                    exit(1); 
+                }
+                
                 // Child
                 close(pipe_id[PIPE_READ]);
                 exec_next_dir(completePath, opt);

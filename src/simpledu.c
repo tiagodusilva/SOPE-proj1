@@ -13,6 +13,9 @@
 
 int fd; /** @brief File descriptor for the log file**/  
 
+extern int childProcess[INT_MAX];
+extern int sizeChildProcess; 
+
 int main(int argc, char *argv[], char *envp[]) {
     Options opt;
                                   
@@ -22,7 +25,7 @@ int main(int argc, char *argv[], char *envp[]) {
     sprintf(pid_string, "%d", pid); 
     bool isFather = false; 
 
-
+    
     if (getenv("SIMPLEDUFATHER") == NULL){                    //Father creates a new env variable with it's pin as value
         isFather = true; 
         if (putenv("SIMPLEDUFATHER") < 0){
@@ -71,6 +74,7 @@ int main(int argc, char *argv[], char *envp[]) {
         }
     }
 
+    sleep(2);
     close(fd);
     exit(0);
 }
