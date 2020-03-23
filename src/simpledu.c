@@ -15,14 +15,16 @@ int fd; /** @brief File descriptor for the log file**/
 
 int main(int argc, char *argv[], char *envp[]) {
     Options opt;
-
-    char * fatherPid;                                   
+                                  
     pid_t pid = getpid();
     char pid_string[20];  
     char *logName = getenv("LOG_FILENAME");
     sprintf(pid_string, "%d", pid); 
+    bool isFather = false; 
 
-    if ((fatherPid = getenv("SIMPLEDUFATHER")) == NULL){                    //Father creates a new env variable with it's pin as value
+
+    if (getenv("SIMPLEDUFATHER") == NULL){                    //Father creates a new env variable with it's pin as value
+        isFather = true; 
         if (putenv("SIMPLEDUFATHER") < 0){
             fprintf(stderr, "Not possible to create FATHER ENV\n");
             exit(1); 
@@ -31,10 +33,9 @@ int main(int argc, char *argv[], char *envp[]) {
             fprintf(stderr, "Not possible to set FATHER ENV\n"); 
             exit(1); 
         } 
-        fatherPid = pid_string; 
     }
 
-    if (strcmp(pid_string, fatherPid) == 0){                        //If actual pin equals to the father pin, then creates file
+    if (isFather){                        //If actual pin equals to the father pin, then creates file
         if (createLog(logName)){
             fprintf(stderr, "Error in createLog\n"); 
             exit(1);  
@@ -63,7 +64,7 @@ int main(int argc, char *argv[], char *envp[]) {
         exit(1); 
     }
 
-    if (strcmp(pid_string, fatherPid) == 0){               //Delete father env variable
+    if (isFather){               //Delete father env variable
         if (unsetenv("SIMPLEDUFATHER") < 0){
             fprintf(stderr, "Not possible to remove FATHER ENV\n");
             exit(1); 

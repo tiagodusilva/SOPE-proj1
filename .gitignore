@@ -57,3 +57,8 @@ dkms.conf
 # IDE folders
 
 .idea/
+cmake-build-debug/
+
+# Test files
+
+src/folder/
