@@ -22,12 +22,12 @@ int main(int argc, char *argv[], char *envp[]) {
     char *logName = getenv("LOG_FILENAME");
     sprintf(pid_string, "%d", pid); 
 
-    if ((fatherPid = getenv("FATHER")) == NULL){                    //Father creates a new env variable with it's pin as value
-        if (putenv("FATHER") < 0){
+    if ((fatherPid = getenv("SIMPLEDUFATHER")) == NULL){                    //Father creates a new env variable with it's pin as value
+        if (putenv("SIMPLEDUFATHER") < 0){
             fprintf(stderr, "Not possible to create FATHER ENV\n");
             exit(1); 
         }
-        if (setenv("FATHER", pid_string, 1) < 0){
+        if (setenv("SIMPLEDUFATHER", pid_string, 1) < 0){
             fprintf(stderr, "Not possible to set FATHER ENV\n"); 
             exit(1); 
         } 
@@ -64,7 +64,7 @@ int main(int argc, char *argv[], char *envp[]) {
     }
 
     if (strcmp(pid_string, fatherPid) == 0){               //Delete father env variable
-        if (unsetenv("FATHER") < 0){
+        if (unsetenv("SIMPLEDUFATHER") < 0){
             fprintf(stderr, "Not possible to remove FATHER ENV\n");
             exit(1); 
         }
