@@ -156,10 +156,10 @@ long int analyze_file(Options* opt, char *name){
             // Don't follow symbolic link
             if (opt->all) {
                 //prints the size information according to the options
-                size = calculate_size(&st, opt);
-                size = 0;
-                print_file(size, completePath);   
-                // printf("%ld\n", st.st_size);
+                if (opt->apparent_size)
+                    size = calculate_size(&st, opt);
+                // If not flag apparent size, assume size is 0, which is it's default value
+                print_file(size, completePath);
             }
         }
     }
