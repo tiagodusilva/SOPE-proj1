@@ -126,7 +126,7 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
     return 0;
 }
 
-void exec_next_dir(char *complete_path, Options *opt, char *envp[]) {
+void exec_next_dir(char *complete_path, Options *opt) {
 
     // Max num of args is 10
     char *vec[10];
@@ -176,5 +176,5 @@ void exec_next_dir(char *complete_path, Options *opt, char *envp[]) {
     }
 
     vec[i] = NULL;
-    execve(vec[0], vec, envp);
+    execv(vec[0], vec);
 }

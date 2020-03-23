@@ -59,4 +59,12 @@ void getLogName(char * logName, char* logFile);
  */
 int writeInLog(double instant, action a, char * info); 
 
+/**
+ * @brief It opens the log file in append mode
+ * 
+ * @param logName Name of the log file
+ * @return int 0 upon success, 1 otherwise
+ */
+int openLog(char * logName);
+
 #endif //SOPE_PROJ1_HANDLELOG_H
