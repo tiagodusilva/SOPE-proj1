@@ -29,34 +29,16 @@ void handlerFather(int signo){
         killpg(childProcess[i], SIGSTOP);        
     }
         
-    printf("Interrupt process? [Y|N]\n");
-    if (!askEnd()) {                                    //User chooses if wishes to proceed with sigint
-        //CONTINUE children
-        for (int i = 0; i < sizeChildProcess; i++){
-            writeInLog(42, SEND_SIGNAL, "FATHER SEND CONTINUE"); 
-            killpg(childProcess[i], SIGCONT);       
-        } 
-        return; 
-    }
+    write(STDOUT_FILENO, "CTRL-C to proceed | any other to continue", 42); 
+    read(STDIN_FILENO, NULL, 1); 
+    fflush(STDIN_FILENO); 
+    
+    //CONTINUE children
+    for (int i = 0; i < sizeChildProcess; i++){
+        writeInLog(42, SEND_SIGNAL, "FATHER SEND CONTINUE"); 
+        killpg(childProcess[i], SIGCONT);       
+    } 
 
-    //SIGINT
-    writeInLog(42, RECV_SIGNAL, "FATHER");
-    for (int i = 0; i < sizeChildProcess; i++) {
-        writeInLog(43, SEND_SIGNAL, "FATHER SEND SIGINT"); 
-        killpg(childProcess[i], SIGUSR1); 
-    }
-
-    signal(SIGINT, SIG_DFL);
-    raise(SIGINT); 
-}
-
-/**
- * @brief Handler for SIGINT for children
- * 
- */
-void handlerChild(int signo){
-    writeInLog(44, RECV_SIGNAL, "CHILD BREAK");
-    raise(SIGINT); 
 }
 
 
@@ -111,14 +93,8 @@ int main(int argc, char *argv[], char *envp[]) {
             exit(1); 
         } 
     }
-    else{
-        writeInLog(17, CREATE, "CHILD");
-        act.sa_handler = handlerChild; 
-        if (sigaction(SIGUSR1, &act, NULL) < 0){
-            fprintf(stderr, "Error on child sigaction Sigint\n");
-            exit(1); 
-        }
-    }
+
+    
 
     //---------------------------------------------
 
@@ -138,7 +114,7 @@ int main(int argc, char *argv[], char *envp[]) {
             exit(1); 
         }
     }
-
+    sleep(1);
     if (isFather) {
         writeInLog(10, EXIT, "FATHER");
         close(fd);

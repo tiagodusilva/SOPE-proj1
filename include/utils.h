@@ -74,9 +74,3 @@ int parse_arguments(int argc, char *argv[], Options *opt);
  */
 
 void exec_next_dir(char *complete_path, Options *opt);
-/**
- * @brief Asks the user if he wishes to proceed with the SIGINT
- * 
- * @return int 0 upon success, 1 otherwise
- */
-int askEnd(); 
