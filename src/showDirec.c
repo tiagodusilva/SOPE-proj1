@@ -102,8 +102,8 @@ long int analyze_file(Options* opt, char *name){
                 int read_ret, status, wait_ret;
                 while (wait_ret = waitpid(id, &status, WNOHANG), wait_ret == 0) {
                     while (read_ret = read(pipe_id[PIPE_READ], line, MAXLINE), read_ret) {
-                        if (read_ret == -1 && read_ret != EINTR) {
-                            fprintf(stderr, "Error while reading form the child's pipe %s\n", strerror(errno));
+                        if (read_ret == -1 && errno != EINTR) {
+                            fprintf(stderr, "Error while reading form the child's pipe %d\n", (errno));
                             exit(1);
                         }
                         printf(line);

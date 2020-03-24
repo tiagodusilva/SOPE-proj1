@@ -11,7 +11,7 @@
 #include "../include/utils.h"
 #include "../include/handleLog.h"
 
-
+    
 #define PATH_SIZE_MAX       540
 #define PATH_MAX_CPY        180
 
