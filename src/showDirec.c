@@ -62,11 +62,15 @@ static inline void handle_file_output(FileInfo *fi, Options *opt) {
 }
 
 static inline void handle_dir_output(FileInfo *fi, Options *opt) {
+    // This never handles the case of printing the original
+    // processe's directory at the end of everything
     if (isFather)
-        print_fileInfo(fi, opt);
-    else
-        write_fileInfo(fi, STDOUT_FILENO);
-
+        if (!opt->max_depth || opt->depth_val > 0)
+            print_fileInfo(fi, opt);
+    else {
+        if (!opt->separate_dirs)
+            write_fileInfo(fi, STDOUT_FILENO);
+    }
 }
 
 /**
@@ -78,6 +82,7 @@ static inline void handle_dir_output(FileInfo *fi, Options *opt) {
  */
 static long int analyze_file(Options* opt, char *name, Queue_t *queue){
     struct stat st; 
+    
     FileInfo fi;
     fi.file_size = 0;
     fi.is_dir = false;
@@ -95,57 +100,45 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
         exit(-1); 
     }
 
-    if (S_ISREG(st.st_mode)) {
-        fi.file_size = get_size(&st, opt);
+    if (S_ISLNK(st.st_mode) && !opt->dereference) {
+        // Don't follow symbolic link
+        // If not flag apparent size, assume size is 0
+        if (opt->apparent_size)
+            fi.file_size = get_size(&st, opt);
+        else // TODO: Test without this if statement
+            fi.file_size = 0;
         handle_file_output(&fi, opt);
         return fi.file_size;
     }
-    else if (S_ISDIR(st.st_mode) && strcmp(name, "..")) {
-        if (strcmp(name, ".")) {
-            // If it's not a '.' file
-            fi.is_dir = true;
-            // ADD TO QUEUE
-            return 0;
+    else {
+        if (S_ISLNK(st.st_mode)) {
+            // If it was a symlink and wee have to dereference it
+            // We stat the file it points to instead
+            if (stat(fi.name, &st) < 0){
+                perror("Error getting the file's stat struct");
+                exit(-1); 
+            }
         }
-        else {
-            // It's the directory itself ('.')
+
+        if (S_ISREG(st.st_mode)) {
             fi.file_size = get_size(&st, opt);
-            return fi.file_size;
-        }
-    }
-    else if (S_ISLNK(st.st_mode)) {
-        
-        if (opt->dereference) {
-            // Follow symbolic link
-            
-            struct stat link_st;
-
-            if (stat(fi.name, &link_st) < 0){
-                perror("Not possible to get symbolic link's file stat"); 
-                exit(1);
-            }
-
-            if (S_ISREG(link_st.st_mode)) {
-                fi.file_size = get_size(&link_st, opt);
-                handle_file_output(&fi, opt);
-                return fi.file_size;
-            }
-            else if (S_ISDIR(link_st.st_mode)) {
-                // TODO: Careful with link to itself
-                // ADD TO QUEUE
-                return 0;
-            }
-
-        }
-        else {
-            // Don't follow symbolic link
-            // If not flag apparent size, assume size is 0
-            if (opt->apparent_size)
-                fi.file_size = get_size(&st, opt);
-            else // TODO: Test without this if statement
-                fi.file_size = 0;
             handle_file_output(&fi, opt);
             return fi.file_size;
+        }
+        else if (S_ISDIR(st.st_mode) && strcmp(name, "..")) {
+            if (strcmp(name, ".")) {
+                // If it's not a '.' file
+                fi.is_dir = true;
+                if (opt->separate_dirs && (!opt->max_depth || opt->depth_val > 0)) {
+                    // ADD TO QUEUE
+                }
+                return 0;
+            }
+            else {
+                // It's the directory itself ('.')
+                fi.file_size = get_size(&st, opt);
+                return fi.file_size;
+            }
         }
     }
 
@@ -158,7 +151,8 @@ int showDirec(Options * opt) {
     long int tmp;
 
     FileInfo cur_dir;
-    cur_dir.sub_dir_size = true;
+    if (!opt->separate_dirs)
+        cur_dir.sub_dir_size = true;
     cur_dir.file_size = 0;
     strncpy(cur_dir.name, opt->path, MAX_STRUCT_NAME);
 
@@ -178,6 +172,11 @@ int showDirec(Options * opt) {
         if (tmp = analyze_file(opt, dirent->d_name, queue), tmp == -1)  
             return 1;
         cur_dir.file_size += tmp;
+    }
+
+    if (closedir(direc) == -1){
+        perror("Not possible to close directory\n");
+        return 1;
     }
 
     if ((!opt->separate_dirs && (!opt->max_depth || opt->depth_val <= 0)) && !queue_is_empty(queue)) {
@@ -226,12 +225,10 @@ int showDirec(Options * opt) {
 
     }
 
-    if (closedir(direc) == -1){
-        perror("Not possible to close directory\n");
-        return 1;
-    }
-
-    handle_dir_output(&cur_dir, opt);
+    if (isFather)
+        print_fileInfo(&cur_dir, opt);
+    else
+        handle_dir_output(&cur_dir, opt);
 
     return 0;
 }
