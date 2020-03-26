@@ -4,7 +4,7 @@
 CC = gcc
 CFLAGS = -Wall # -Werror
 
-SRC = simpledu.c utils.c showDirec.c handleLog.c queue.c
+SRC = simpledu.c queue.c utils.c showDirec.c handleLog.c
 OBJ = $(SRC:.c=.o)
 
 .c.o:

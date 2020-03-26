@@ -106,7 +106,7 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
                     opt->max_depth = true;
                     opt->depth_val = atoi(argv[cur_arg] + MAX_DEPTH_STR_OFFSET);
                 }
-                else {
+                else if (!strcmp(argv[cur_arg], "-l") && !strcmp(argv[cur_arg], "--count-links")) {
                     fprintf(stderr, "Argument must be an integer (given \"%s\")\n", argv[cur_arg] + MAX_DEPTH_STR_OFFSET);
                     return 1;
                 }

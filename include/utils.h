@@ -45,6 +45,14 @@ typedef struct cmd_options {
 bool is_num(char *s);
 
 /**
+ * @brief Get the num digits of a number
+ * 
+ * @param n 
+ * @return int 
+ */
+int get_num_digits(long int n);
+
+/**
  * @brief Prints the saved configuration of the simpledu command stored on the Options struct
  * 
  * @param opt Pointer to the Options struct to print

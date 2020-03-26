@@ -1,145 +1,116 @@
 #include "../include/showDirec.h"
 #include <sys/wait.h>
 #include <unistd.h>
-
+#include "../include/queue.h"
 
 extern int childProcess[MAX_SIZE_LINE];
 extern int sizeChildProcess; 
-extern bool isFather; 
+extern bool isFather;
 
-static inline void print_file(long int size, char *s) {
-    printf("%-8ld%s\n", size, s);
+#define STAT_BLOCK_SIZE 512
+
+#define MAX_STRUCT_NAME     512
+
+typedef struct fileInfo {
+    long int file_size;
+    bool is_dir, sub_dir_size;
+    char name[MAX_STRUCT_NAME];
+} FileInfo;
+
+static void read_fileInfo(FileInfo *fi, int fileno) {
+    read(fileno, fi, sizeof(*fi));
 }
 
-static inline long int calculate_size(struct stat *st, Options *opt) {
+static void write_fileInfo(FileInfo *fi, int fileno) {
+    write(fileno, fi, sizeof(*fi));
+}
+
+// Calculate only before printing
+static inline long int calculate_size(long int size, Options *opt) {
         // Quick ceiling q = (x + y - 1) / y;
-        if (opt->apparent_size) {
-            return (st->st_size + opt->block_size - 1) / opt->block_size;
-        }
-        else {
-            return (((st->st_size + st->st_blksize - 1) / st->st_blksize) * st->st_blksize
-                + opt->block_size - 1) / opt->block_size;
-        }
+        return (size + opt->block_size - 1) / opt->block_size;
 }
 
-int showDirec(Options * opt) {
-    DIR * direc;
-    struct dirent * dirent;
-    long int dir_size = 0, tmp;
+// For safekeeping :D
+static inline long int get_size(struct stat *st, Options *opt) {
+    return opt->apparent_size ?
+        st->st_size
+        : st->st_blocks * STAT_BLOCK_SIZE;
+}
+
+static inline void print_fileInfo(FileInfo *fi, Options *opt) {
+    char number[24];
+    sprintf(number, "%ld", calculate_size(fi->file_size, opt));
     
+    for (int i = strlen(number) % 8; i < 8; ++i)
+        strcat(number, " ");
 
-    if ((direc = opendir(opt->path)) == NULL){  
-        fprintf(stderr, "Not possible to open directory\n");
-        return 1;
-    }
-
-    while((dirent = readdir(direc)) != NULL){
-        if (tmp = analyze_file(opt, dirent->d_name), tmp == -1)  
-            return 1;
-        dir_size += tmp;
-    }
-
-    if (closedir(direc) == -1){
-        fprintf(stderr, "Not possible to close directory\n");
-        return 1;
-    }
-
-    print_file(dir_size, opt->path);
-
-    return 0;
+    write(STDOUT_FILENO, number, strlen(number));
+    write(STDOUT_FILENO, fi->name, strlen(fi->name));
+    write(STDOUT_FILENO, "\n", 1);
 }
 
-long int analyze_file(Options* opt, char *name){
+static inline void handle_file_output(FileInfo *fi, Options *opt) {
+    if (opt->all) {
+        if (!opt->max_depth || opt->depth_val > 0) {
+            if (isFather)
+                print_fileInfo(fi, opt);
+            else
+                write_fileInfo(fi, STDOUT_FILENO);
+        }
+    }
+}
+
+static inline void handle_dir_output(FileInfo *fi, Options *opt) {
+    if (isFather)
+        print_fileInfo(fi, opt);
+    else
+        write_fileInfo(fi, STDOUT_FILENO);
+
+}
+
+/**
+ * @brief For each file received, it prints the file information i.e size.  
+ * 
+ * @param opt Options given as parameters
+ * @param name Name of the file in the folder
+ * @return lont int The file's size upon success, -1 otherwise
+ */
+static long int analyze_file(Options* opt, char *name, Queue_t *queue){
     struct stat st; 
-    long int size = 0; 
-    //printf("%d\n", getpid());
+    FileInfo fi;
+    fi.file_size = 0;
+    fi.is_dir = false;
+    fi.sub_dir_size = false;
+    fi.name[0] = '\0';
 
     //get the complete path of the file called "name"
-    char completePath[PATH_SIZE_MAX] = ""; 
-    strcpy(completePath, opt->path);
-    if (completePath[strlen(completePath) - 1] != '/')
-        strcat(completePath, "/");
-    strcat(completePath, name);
+    strncpy(fi.name, opt->path, MAX_STRUCT_NAME);
+    if (fi.name[strlen(fi.name) - 1] != '/')
+        strcat(fi.name, "/");
+    strncat(fi.name, name, MAX_STRUCT_NAME);
 
-    if (lstat(completePath, &st) < 0){
-        fprintf(stderr, "Not possible to get file stat\n"); 
-        return -1; 
+    if (lstat(fi.name, &st) < 0){
+        perror("Error getting the file's stat struct");
+        exit(-1); 
     }
 
     if (S_ISREG(st.st_mode)) {
-        size = calculate_size(&st, opt);
-        if (opt->all) {
-            //prints the size information according to the options
-            print_file(size, completePath);   
-        }
+        fi.file_size = get_size(&st, opt);
+        handle_file_output(&fi, opt);
+        return fi.file_size;
     }
     else if (S_ISDIR(st.st_mode) && strcmp(name, "..")) {
         if (strcmp(name, ".")) {
             // If it's not a '.' file
-            // fprintf(stderr, "Unhandled directory\n");
-            // fprintf(stderr, "%s\n", completePath);
-
-            // Create pipe
-            int pipe_id[2];
-            if (pipe(pipe_id)) {
-                fprintf(stderr, "Failed to create pipe\n");
-                exit(1);
-            }
-
-            // Handles dup2 with stdout and pipe
-            int original_stdout = dup(STDOUT_FILENO);
-            dup2(pipe_id[PIPE_WRITE], STDOUT_FILENO);
-
-            // Fork process
-            int id = fork();
-            if (id) {
-                // Parent
-                childProcess[sizeChildProcess++] = id; 
-                close(pipe_id[PIPE_WRITE]);
-                dup2(original_stdout, STDOUT_FILENO);
-
-                char *line = calloc(MAXLINE, sizeof(*line));
-                int read_ret, status, wait_ret;
-                while (wait_ret = waitpid(id, &status, WNOHANG), wait_ret == 0) {
-                    while (read_ret = read(pipe_id[PIPE_READ], line, MAXLINE), read_ret) {
-                        if (read_ret == -1 && errno != EINTR) {
-                            fprintf(stderr, "Error while reading form the child's pipe %d\n", (errno));
-                            exit(1);
-                        }
-                        printf(line);
-                    }
-                }
-                if (wait_ret == -1) {
-                    fprintf(stderr, "Error in waitpid()\n");
-                }
-                close(pipe_id[PIPE_READ]);
-
-                if (!opt->separate_dirs) {
-                    size = atoi(line);
-                }
-
-            }
-            else {
-                //Change group id of the children directly linked to the father 
-                if (isFather){
-                    int newgrp; 
-                    if((newgrp = setpgrp()) < 0){
-                        fprintf(stderr, "Error on setpgrp\n");
-                        exit(1); 
-                    }
-                }
-
-                // Child
-                close(pipe_id[PIPE_READ]);
-                exec_next_dir(completePath, opt);
-                fprintf(stderr, "Failed to exec the folder '%s'", completePath);
-                exit(1);
-            }
-
-
+            fi.is_dir = true;
+            // ADD TO QUEUE
+            return 0;
         }
         else {
-            size = calculate_size(&st, opt);
+            // It's the directory itself ('.')
+            fi.file_size = get_size(&st, opt);
+            return fi.file_size;
         }
     }
     else if (S_ISLNK(st.st_mode)) {
@@ -149,35 +120,118 @@ long int analyze_file(Options* opt, char *name){
             
             struct stat link_st;
 
-            if (stat(completePath, &link_st) < 0){
-                fprintf(stderr, "Not possible to get symbolic link's file stat\n"); 
-                return -1;
+            if (stat(fi.name, &link_st) < 0){
+                perror("Not possible to get symbolic link's file stat"); 
+                exit(1);
             }
 
             if (S_ISREG(link_st.st_mode)) {
-                size = calculate_size(&link_st, opt);
-                if (opt->all) {
-                    //prints the size information according to the options
-                    print_file(size, completePath);   
-                }
+                fi.file_size = get_size(&link_st, opt);
+                handle_file_output(&fi, opt);
+                return fi.file_size;
             }
             else if (S_ISDIR(link_st.st_mode)) {
-                fprintf(stderr, "Unhandled symlink directory - Follow\n");
-                fprintf(stderr, "%s\n", completePath);
+                // TODO: Careful with link to itself
+                // ADD TO QUEUE
+                return 0;
             }
 
         }
         else {
             // Don't follow symbolic link
-            if (opt->all) {
-                //prints the size information according to the options
-                if (opt->apparent_size)
-                    size = calculate_size(&st, opt);
-                // If not flag apparent size, assume size is 0, which is it's default value
-                print_file(size, completePath);
-            }
+            // If not flag apparent size, assume size is 0
+            if (opt->apparent_size)
+                fi.file_size = get_size(&st, opt);
+            else // TODO: Test without this if statement
+                fi.file_size = 0;
+            handle_file_output(&fi, opt);
+            return fi.file_size;
         }
     }
 
-    return size;
+    return 0;
+}
+
+int showDirec(Options * opt) {
+    DIR * direc;
+    struct dirent * dirent;
+    long int tmp;
+
+    FileInfo cur_dir;
+    cur_dir.sub_dir_size = true;
+    cur_dir.file_size = 0;
+    strncpy(cur_dir.name, opt->path, MAX_STRUCT_NAME);
+
+    Queue_t *queue = new_queue();
+    if (queue == NULL) {
+        perror("Failed to instanteate the queue");
+        exit(1);
+    }
+
+    if ((direc = opendir(opt->path)) == NULL){  
+        perror("Not possible to open directory");
+        exit(1);
+    }
+
+    // Take care of all regular files and save our directories for later
+    while((dirent = readdir(direc)) != NULL){
+        if (tmp = analyze_file(opt, dirent->d_name, queue), tmp == -1)  
+            return 1;
+        cur_dir.file_size += tmp;
+    }
+
+    if ((!opt->separate_dirs && (!opt->max_depth || opt->depth_val <= 0)) && !queue_is_empty(queue)) {
+        
+        // There are more subdirectories to take care of
+        int pipe_id[2];
+    
+        // Create pipe
+        if (pipe(pipe_id)) {
+            perror("Failed to create pipe");
+            exit(1);
+        }
+
+        while (!queue_is_empty(queue)) {
+            int id = fork();
+            if (id) {
+                // Father
+                childProcess[sizeChildProcess++] = id;
+
+                close(pipe_id[PIPE_WRITE]);
+                free(queue_pop(queue));
+            }
+            else {
+                // Child
+                if (isFather) {
+                    int newgrp;
+                    if ((newgrp = setpgrp()) < 0) {
+                        perror("Error on setprgrp\n");
+                        exit(1);
+                    }
+                }
+
+                // Handles dup2 with stdout and pipe
+                dup2(pipe_id[PIPE_WRITE], STDOUT_FILENO);
+
+                close(pipe_id[PIPE_READ]);
+                exec_next_dir(queue_front(queue), opt);
+                perror("Failed to exec to the next sub directory");
+                queue_clear(queue);
+                exit(1);
+            }
+        }
+
+        // Time to wait and read from ALL my children :<)
+        int aux = -1;
+
+    }
+
+    if (closedir(direc) == -1){
+        perror("Not possible to close directory\n");
+        return 1;
+    }
+
+    handle_dir_output(&cur_dir, opt);
+
+    return 0;
 }

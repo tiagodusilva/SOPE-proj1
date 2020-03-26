@@ -30,7 +30,7 @@ void handlerFather(int signo){
     }
         
     write(STDOUT_FILENO, "CTRL-C to proceed | any other to continue", 42); 
-    read(STDIN_FILENO, NULL, 1); 
+    read(STDIN_FILENO, NULL, 1);
     fflush(STDIN_FILENO); 
     
     //CONTINUE children
@@ -44,7 +44,7 @@ void handlerFather(int signo){
 
 int main(int argc, char *argv[], char *envp[]) {
     Options opt;                                                /** @brief Parameters of execution */ 
-    struct sigaction act;                                        
+    struct sigaction act;                                  
     char *logName = getenv("LOG_FILENAME");
     pid_t pid = getpid();                                                
     char pid_string[20];  
@@ -114,7 +114,7 @@ int main(int argc, char *argv[], char *envp[]) {
             exit(1); 
         }
     }
-    sleep(1);
+    
     if (isFather) {
         writeInLog(10, EXIT, "FATHER");
         close(fd);
