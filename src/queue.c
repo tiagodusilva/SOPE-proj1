@@ -31,6 +31,28 @@ void free_queue(Queue_t* q) {
     free(q);
 }
 
+void free_queue_and_data(Queue_t* q) {
+    node_t *cur_node = q->front, *next_node;
+
+    if (q->front == q->rear && !queue_is_empty(q)) {
+        // There's only 1 element
+        free(q->front->data);
+        free(q->front);
+    }
+    else {
+        while (cur_node != NULL) {
+            next_node = cur_node->next;
+            free(cur_node->data);
+            free(cur_node);
+            cur_node = next_node;
+        }
+    }
+
+    q->front = NULL;
+    q->rear = NULL;
+    q->size = 0;
+}
+
 void queue_clear(Queue_t* q) {
 
     node_t *cur_node = q->front, *next_node;

@@ -41,6 +41,13 @@ Queue_t* new_queue();
 void free_queue(Queue_t *q);
 
 /**
+ * @brief Frees and entire Queue and it's contents
+ * 
+ * @param q Pointer to the Queue to be freed
+ */
+void free_queue_and_data(Queue_t* q);
+
+/**
  * @brief Clears all the elements from the Queue
  * 
  * @param q The Queue to clear

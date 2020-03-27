@@ -13,16 +13,16 @@ extern bool isFather;
 
 typedef struct fileInfo {
     long int file_size;
-    bool is_dir, sub_dir_size;
+    bool is_sub_dir, is_dir;
     char name[MAX_STRUCT_NAME];
 } FileInfo;
 
-static void read_fileInfo(FileInfo *fi, int fileno) {
-    read(fileno, fi, sizeof(*fi));
+static ssize_t read_fileInfo(FileInfo *fi, int fileno) {
+    return read(fileno, fi, sizeof(*fi));
 }
 
-static void write_fileInfo(FileInfo *fi, int fileno) {
-    write(fileno, fi, sizeof(*fi));
+static ssize_t write_fileInfo(FileInfo *fi, int fileno) {
+    return write(fileno, fi, sizeof(*fi));
 }
 
 // Calculate only before printing
@@ -51,24 +51,25 @@ static inline void print_fileInfo(FileInfo *fi, Options *opt) {
 }
 
 static inline void handle_file_output(FileInfo *fi, Options *opt) {
-    if (opt->all) {
-        if (!opt->max_depth || opt->depth_val > 0) {
-            if (isFather)
-                print_fileInfo(fi, opt);
-            else
-                write_fileInfo(fi, STDOUT_FILENO);
-        }
+    if (opt->all && (!opt->max_depth || opt->depth_val > 0)) {
+        if (isFather)
+            print_fileInfo(fi, opt);
+        else
+            write_fileInfo(fi, STDOUT_FILENO);
     }
 }
 
 static inline void handle_dir_output(FileInfo *fi, Options *opt) {
     // This never handles the case of printing the original
     // processe's directory at the end of everything
-    if (isFather)
+    if (isFather) {
         if (!opt->max_depth || opt->depth_val > 0)
             print_fileInfo(fi, opt);
+    }
     else {
-        if (!opt->separate_dirs)
+        // Only case where we DON'T send stuff is this
+        // opt->separate_dirs && opt->max_depth && opt->depth_val < 1
+        if (!opt->separate_dirs || !opt->max_depth || opt->depth_val >= 1)
             write_fileInfo(fi, STDOUT_FILENO);
     }
 }
@@ -85,8 +86,8 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
     
     FileInfo fi;
     fi.file_size = 0;
+    fi.is_sub_dir = false;
     fi.is_dir = false;
-    fi.sub_dir_size = false;
     fi.name[0] = '\0';
 
     //get the complete path of the file called "name"
@@ -128,9 +129,12 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
         else if (S_ISDIR(st.st_mode) && strcmp(name, "..")) {
             if (strcmp(name, ".")) {
                 // If it's not a '.' file
-                fi.is_dir = true;
-                if (opt->separate_dirs && (!opt->max_depth || opt->depth_val > 0)) {
+                if (!opt->separate_dirs || !opt->max_depth || opt->depth_val > 0) {
                     // ADD TO QUEUE
+                    size_t len = strlen(name) + 1;
+                    char *new_path = malloc(len * sizeof(*new_path));
+                    strncpy(new_path, name, len);
+                    queue_push_back(queue, new_path);
                 }
                 return 0;
             }
@@ -151,13 +155,13 @@ int showDirec(Options * opt) {
     long int tmp;
 
     FileInfo cur_dir;
-    if (!opt->separate_dirs)
-        cur_dir.sub_dir_size = true;
+    cur_dir.is_sub_dir = true;
+    cur_dir.is_dir = true;
     cur_dir.file_size = 0;
     strncpy(cur_dir.name, opt->path, MAX_STRUCT_NAME);
 
-    Queue_t *queue = new_queue();
-    if (queue == NULL) {
+    Queue_t *dir_q = new_queue();
+    if (dir_q == NULL) {
         perror("Failed to instanteate the queue");
         exit(1);
     }
@@ -169,7 +173,7 @@ int showDirec(Options * opt) {
 
     // Take care of all regular files and save our directories for later
     while((dirent = readdir(direc)) != NULL){
-        if (tmp = analyze_file(opt, dirent->d_name, queue), tmp == -1)  
+        if (tmp = analyze_file(opt, dirent->d_name, dir_q), tmp == -1)  
             return 1;
         cur_dir.file_size += tmp;
     }
@@ -179,25 +183,38 @@ int showDirec(Options * opt) {
         return 1;
     }
 
-    if ((!opt->separate_dirs && (!opt->max_depth || opt->depth_val <= 0)) && !queue_is_empty(queue)) {
+    if ((!opt->separate_dirs && (!opt->max_depth || opt->depth_val <= 0)) && !queue_is_empty(dir_q)) {
         
-        // There are more subdirectories to take care of
-        int pipe_id[2];
-    
-        // Create pipe
-        if (pipe(pipe_id)) {
-            perror("Failed to create pipe");
+        Queue_t *pipe_q = new_queue();
+        if (pipe_q == NULL) {
+            perror("Failed to create the pipe queue");
             exit(1);
         }
 
-        while (!queue_is_empty(queue)) {
-            int id = fork();
-            if (id) {
-                // Father
-                childProcess[sizeChildProcess++] = id;
+        // LAUNCH ALL CHILDS
 
-                close(pipe_id[PIPE_WRITE]);
-                free(queue_pop(queue));
+        while (!queue_is_empty(dir_q)) {
+            char *sub_dir = (char*) queue_pop(dir_q);
+            
+            int *new_pipe = (int*) malloc(sizeof(int[2]));
+            if (new_pipe == NULL) {
+                perror("Failed to allocate memory for the pipe");
+                exit(1);
+            }
+            queue_push_back(pipe_q, new_pipe);
+
+            if (pipe(new_pipe)) {
+                perror("Failed to create pipe");
+                exit(1);
+            }
+
+            int frk = fork();
+            if (frk) {
+                // Father
+                childProcess[sizeChildProcess++] = frk;
+                close(new_pipe[PIPE_WRITE]);
+                
+                free(sub_dir);
             }
             else {
                 // Child
@@ -210,25 +227,84 @@ int showDirec(Options * opt) {
                 }
 
                 // Handles dup2 with stdout and pipe
-                dup2(pipe_id[PIPE_WRITE], STDOUT_FILENO);
+                if (dup2(new_pipe[PIPE_WRITE], STDOUT_FILENO) == -1) {
+                    perror("Failed to dup2");
+                    exit(1);
+                }
+                close(new_pipe[PIPE_READ]);
 
-                close(pipe_id[PIPE_READ]);
-                exec_next_dir(queue_front(queue), opt);
+                // Avoid memory leaks
+                // The sub_dir is safe in memory beause it's not in the queue
+                free_queue_and_data(dir_q);
+                free_queue_and_data(pipe_q);
+
+                // Exec
+                exec_next_dir(sub_dir, opt);
                 perror("Failed to exec to the next sub directory");
-                queue_clear(queue);
                 exit(1);
             }
         }
+        
+        // TIME TO READ ALL THE CHILD'S PIPES
 
-        // Time to wait and read from ALL my children :<)
-        int aux = -1;
+        int termination_status;
+        pid_t any = -1;
+        FileInfo received_file;
 
+        while (waitpid(any, &termination_status, WNOHANG) >= 0) {
+
+            if (errno != ECHILD && errno != 0) {
+                perror("Error on waitpid");
+                exit(1);
+            }
+
+            // Rotate the available pipes
+            if (!queue_is_empty(pipe_q)) {
+                int *cur_pipe = (int*) queue_pop(pipe_q);
+                int read_return = read_fileInfo(&received_file, cur_pipe[PIPE_READ]);
+
+                if (read_return == sizeof(received_file)) {
+                    if (received_file.is_sub_dir) {
+                        // Last message from that pipe/child
+                        cur_dir.file_size += received_file.file_size;
+                        received_file.is_sub_dir = false;
+                        
+                        // We know it's a directory
+                        handle_dir_output(&received_file, opt);
+
+                        close(cur_pipe[PIPE_READ]);
+                        free(cur_pipe);
+                    }
+                    else {
+                        // There are still more messages to receive
+                        if (received_file.is_dir)
+                            handle_dir_output(&received_file, opt);
+                        else
+                            handle_file_output(&received_file, opt);
+                        
+                        queue_push_back(pipe_q, cur_pipe);
+                    }
+                }
+                else if (read_return == 0) {
+                    queue_push_back(pipe_q, cur_pipe);
+                }
+                else if (read_return != 0) {
+                    perror("Desync caused the read to not have enough bytes in the pipe");
+                    free_queue_and_data(pipe_q);
+                    free_queue_and_data(dir_q);
+                    exit(1);
+                }
+            }
+        }
+
+        free_queue_and_data(pipe_q);
     }
 
     if (isFather)
         print_fileInfo(&cur_dir, opt);
     else
-        handle_dir_output(&cur_dir, opt);
+        write_fileInfo(&cur_dir, STDOUT_FILENO);
 
+    free_queue_and_data(dir_q);
     return 0;
 }
