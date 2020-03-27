@@ -39,15 +39,7 @@ static inline long int get_size(struct stat *st, Options *opt) {
 }
 
 static inline void print_fileInfo(FileInfo *fi, Options *opt) {
-    char number[24];
-    sprintf(number, "%ld", calculate_size(fi->file_size, opt));
-    
-    for (int i = strlen(number) % 8; i < 8; ++i)
-        strcat(number, " ");
-
-    write(STDOUT_FILENO, number, strlen(number));
-    write(STDOUT_FILENO, fi->name, strlen(fi->name));
-    write(STDOUT_FILENO, "\n", 1);
+    printf("%ld\t%s\n", calculate_size(fi->file_size, opt), fi->name);
 }
 
 static inline void handle_file_output(FileInfo *fi, Options *opt) {
@@ -131,9 +123,9 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
                 // If it's not a '.' file
                 if (!opt->separate_dirs || !opt->max_depth || opt->depth_val > 0) {
                     // ADD TO QUEUE
-                    size_t len = strlen(name) + 1;
-                    char *new_path = malloc(len * sizeof(*new_path));
-                    strncpy(new_path, name, len);
+                    size_t len = strlen(fi.name) + 1;
+                    char *new_path = (char*) malloc(len * sizeof(char));
+                    strncpy(new_path, fi.name, len);
                     queue_push_back(queue, new_path);
                 }
                 return 0;
