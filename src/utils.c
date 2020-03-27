@@ -106,7 +106,7 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
                     opt->max_depth = true;
                     opt->depth_val = atoi(argv[cur_arg] + MAX_DEPTH_STR_OFFSET);
                 }
-                else if (!strcmp(argv[cur_arg], "-l") && !strcmp(argv[cur_arg], "--count-links")) {
+                else {
                     fprintf(stderr, "Argument must be an integer (given \"%s\")\n", argv[cur_arg] + MAX_DEPTH_STR_OFFSET);
                     return 1;
                 }
@@ -114,7 +114,7 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
             else if (strcmp(argv[cur_arg], "--apparent-size") == 0) {
                 opt->apparent_size = true;
             }
-            else {
+            else if (strcmp(argv[cur_arg], "-l") && strcmp(argv[cur_arg], "--count-links")) {
                 // Assume it's the directory path
                 opt->path = argv[cur_arg];
             }
