@@ -95,11 +95,7 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
 
     if (S_ISLNK(st.st_mode) && !opt->dereference) {
         // Don't follow symbolic link
-        // If not flag apparent size, assume size is 0
-        if (opt->apparent_size)
-            fi.file_size = get_size(&st, opt);
-        else // TODO: Test without this if statement
-            fi.file_size = 0;
+        fi.file_size = get_size(&st, opt);
         handle_file_output(&fi, opt);
         return fi.file_size;
     }
