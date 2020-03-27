@@ -183,7 +183,7 @@ int showDirec(Options * opt) {
         return 1;
     }
 
-    if ((!opt->separate_dirs && (!opt->max_depth || opt->depth_val <= 0)) && !queue_is_empty(dir_q)) {
+    if (!queue_is_empty(dir_q)) {
         
         Queue_t *pipe_q = new_queue();
         if (pipe_q == NULL) {
@@ -192,7 +192,6 @@ int showDirec(Options * opt) {
         }
 
         // LAUNCH ALL CHILDS
-
         while (!queue_is_empty(dir_q)) {
             char *sub_dir = (char*) queue_pop(dir_q);
             
@@ -266,9 +265,10 @@ int showDirec(Options * opt) {
                 if (read_return == sizeof(received_file)) {
                     if (received_file.is_sub_dir) {
                         // Last message from that pipe/child
-                        cur_dir.file_size += received_file.file_size;
+                        if (!opt->separate_dirs)
+                            cur_dir.file_size += received_file.file_size;
                         received_file.is_sub_dir = false;
-                        
+
                         // We know it's a directory
                         handle_dir_output(&received_file, opt);
 
