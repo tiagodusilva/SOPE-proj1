@@ -1,5 +1,4 @@
-#ifndef SOPE_PROJ1_HANDLELOG_H
-#define SOPE_PROJ1_HANDLELOG_H
+#pragma once
 
 #include <fcntl.h> 
 #include <stdlib.h> 
@@ -8,6 +7,8 @@
 #include <sys/types.h> 
 #include <string.h> 
 #include <unistd.h> 
+
+#include "../include/utils.h"
 
 /**
  * @brief Enum for action to written, in order to avoid string errors
@@ -23,8 +24,6 @@ typedef enum{
     ENTRY
 }action; 
 
-extern int fd;
-
 /** @brief Max size of the name of log file**/ 
 #define MAX_SIZE_LOG        100
 /** @brief Max size for the message to be written in one line of log file**/
@@ -33,21 +32,13 @@ extern int fd;
 #define MAX_SIZE_INFO       700
 
 #define MAX_SIZE_ACTION     20
-/**
- * @brief Creates logFile name 
- * 
- * @param logName Name of the variable LOG_FILENAME
- * @return int -1 upon error, else the pid of the created file
- */
-int createLog(char * logName); 
 
 /**
- * @brief Get the name of the actual the log file
+ * @brief Starts the log file (if necessary)
  * 
- * @param logName Name of the LOG_FILENAME env
- * @param logFile Name of the actual log file to be set by the function 
+ * @param opt 
  */
-void getLogName(char * logName, char* logFile);
+void startLog(Options *opt);
 
 /**
  * @brief Function that writes in the LOG folder
@@ -60,11 +51,8 @@ void getLogName(char * logName, char* logFile);
 int writeInLog(double instant, action a, char * info); 
 
 /**
- * @brief It opens the log file in append mode
+ * @brief Closes the log's file descriptor
  * 
- * @param logName Name of the log file
- * @return int 0 upon success, 1 otherwise
+ * @param opt 
  */
-int openLog(char * logName);
-
-#endif //SOPE_PROJ1_HANDLELOG_H
+void closeLog(Options *opt);

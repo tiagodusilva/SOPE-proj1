@@ -4,8 +4,7 @@
 #include "../include/queue.h"
 
 extern int childProcess[MAX_SIZE_LINE];
-extern int sizeChildProcess; 
-extern bool isFather;
+extern int sizeChildProcess;
 
 #define STAT_BLOCK_SIZE 512
 
@@ -44,7 +43,7 @@ static inline void print_fileInfo(FileInfo *fi, Options *opt) {
 
 static inline void handle_file_output(FileInfo *fi, Options *opt) {
     if (opt->all && (!opt->max_depth || opt->depth_val > 0)) {
-        if (isFather)
+        if (opt->original_process)
             print_fileInfo(fi, opt);
         else
             write_fileInfo(fi, STDOUT_FILENO);
@@ -54,7 +53,7 @@ static inline void handle_file_output(FileInfo *fi, Options *opt) {
 static inline void handle_dir_output(FileInfo *fi, Options *opt) {
     // This never handles the case of printing the original
     // processe's directory at the end of everything
-    if (isFather) {
+    if (opt->original_process) {
         if (!opt->max_depth || opt->depth_val > 0)
             print_fileInfo(fi, opt);
     }
@@ -205,7 +204,7 @@ int showDirec(Options * opt) {
             }
             else {
                 // Child
-                if (isFather) {
+                if (opt->original_process) {
                     int newgrp;
                     if ((newgrp = setpgrp()) < 0) {
                         perror("Error on setprgrp\n");
@@ -234,7 +233,7 @@ int showDirec(Options * opt) {
         
         // TIME TO READ ALL THE CHILD'S PIPES
 
-        int termination_status;
+        int termination_status = 0;
         pid_t any = -1;
         FileInfo received_file;
 
@@ -243,6 +242,11 @@ int showDirec(Options * opt) {
             if (errno != ECHILD && errno != 0) {
                 perror("Error on waitpid");
                 exit(1);
+            }
+            
+            if (termination_status != 0) {
+                fprintf(stderr, "A child has terminated unsuccessfully\n");
+                termination_status = 0;
             }
 
             // Rotate the available pipes
@@ -288,7 +292,7 @@ int showDirec(Options * opt) {
         free_queue_and_data(pipe_q);
     }
 
-    if (isFather)
+    if (opt->original_process)
         print_fileInfo(&cur_dir, opt);
     else
         write_fileInfo(&cur_dir, STDOUT_FILENO);

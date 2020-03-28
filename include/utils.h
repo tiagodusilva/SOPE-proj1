@@ -3,8 +3,6 @@
 #include <stdbool.h>
 #include <limits.h>
 
-/** @brief Application name */
-#define APPLICATION_NAME "simpledu"
 /** @brief The default block size to be used */
 #define DEFAULT_BLOCK_SIZE 1024
 /** @brief The offset of the number parameter in the '--block-size=N' argument */
@@ -21,7 +19,8 @@
 #define MAXLINE 4096
 
 /**
- * @brief Struct to keep track of the simpledu parameters to be used
+ * @brief Struct to keep track of the simpledu parameters to be used\n
+ * Also has a couple of extra things
  * @details The default parameters are:\n
  * \tblock_size = DEFAULT_BLOCK_SIZE\n
  * \tpath = "."\n
@@ -29,11 +28,30 @@
  * depth_val should only be used when max_depth is set to true
  */
 typedef struct cmd_options {
+    char *program_name;
+    bool original_process;                   /** @brief True if it's the original process */
+
     bool all, dereference, separate_dirs, max_depth, apparent_size, child;
     long block_size;
     int depth_val;
     char *path;
 } Options;
+
+/**
+ * @brief Handles everything the program needs to start
+ * 
+ * @param argc 
+ * @param argv 
+ * @param opt 
+ */
+void simpledu_startup(int argc, char *argv[], Options *opt);
+
+/**
+ * @brief Handles everything the program needs to end
+ * 
+ * @param opt 
+ */
+void simpledu_shutdown(Options *opt);
 
 /**
  * @brief Returns wether a string is a number or not
