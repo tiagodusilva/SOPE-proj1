@@ -234,7 +234,7 @@ int showDirec(Options * opt) {
         pid_t any = -1;
         FileInfo received_file;
 
-        while (waitpid(any, &termination_status, WNOHANG) >= 0) {
+        while (waitpid(any, &termination_status, WNOHANG) >= 0 || !queue_is_empty(pipe_q)) {
 
             if (errno != ECHILD && errno != 0) {
                 perror("Error on waitpid");
