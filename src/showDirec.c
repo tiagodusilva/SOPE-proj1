@@ -5,8 +5,6 @@
 
 #define STAT_BLOCK_SIZE 512
 
-#define MAX_PATH_SIZE 512
-
 typedef struct fileInfo {
     long int file_size;
     bool is_sub_dir, is_dir;

@@ -166,6 +166,10 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
             }
             else if (strcmp(argv[cur_arg], "-l") && strcmp(argv[cur_arg], "--count-links")) {
                 // Assume it's the directory path
+                if (strlen(argv[cur_arg]) >= MAX_PATH_SIZE_CHECKED) {
+                    perror("Path is too large");
+                    exit(1);
+                }
                 opt->path = argv[cur_arg];
             }
 

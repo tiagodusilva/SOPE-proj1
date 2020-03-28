@@ -20,6 +20,9 @@
 
 #define MAX_CHILDREN 100
 
+#define MAX_PATH_SIZE 512
+#define MAX_PATH_SIZE_CHECKED (MAX_PATH_SIZE - 100)
+
 /**
  * @brief Struct to keep track of the simpledu parameters to be used\n
  * Also has a couple of extra things
