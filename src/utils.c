@@ -32,11 +32,12 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
         } 
     }
 
+    startLog(opt);
+
     if (setSignal(opt)) {
         perror("SetSignal"); 
         exit(1); 
     } 
-    startLog(opt);
 
 }
 

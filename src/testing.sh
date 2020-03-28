@@ -9,7 +9,7 @@ command_args=(
     "-a -b"
 )
 
-folder=${HOME}/Documents/SOPE/SOPE-proj1/
+folder=${HOME}/Documents/SOPE/SOPE-proj1/src
 
 for i in ${!command_args[*]}
 do

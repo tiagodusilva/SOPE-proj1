@@ -37,6 +37,7 @@ typedef struct cmd_options {
     long block_size;
     int depth_val;
     char *path;
+    
     int childProcess[MAX_CHILDREN];   
     int sizeChildProcess;              
 } Options;
