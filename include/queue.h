@@ -16,7 +16,7 @@
  * @brief The max size of any Queue
  * 
  */
-#define QUEUE_MAX_CAPACITY 256
+#define QUEUE_MAX_CAPACITY 1024
 
 /**
  * @brief Queue data structure (FIFO)

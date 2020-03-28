@@ -1,18 +1,25 @@
 #!/bin/bash
 
 command_args=(
-    "-l -a"
-    "-l -a -L"
-    "-l -a -L --max-depth=2"
-    "-l -a -L --max-depth=2"
-    "-l -a -L -B 25"
-    "-l -a -B 25"
-    "-l -a -b"
+    "-l -a"                          # 0
+    "-l -a -L"                       # 1
+    "-l -a -L --max-depth=0"         # 2
+    "-l -a -L -S --max-depth=0"      # 3
+    "-l -a -L --max-depth=1"         # 4
+    "-l -a -L -S --max-depth=1"      # 5
+    "-l -a -L --max-depth=2"         # 6
+    "-l -a -L -S --max-depth=1"      # 7
+    "-l -a -L -B 25"                 # 8
+    "-l -a -L -S -B 25"              # 9
+    "-l -a -B 25"                    # 10
+    "-l -a -b"                       # 11
 )
 
 directories=(
-    ${HOME}/Documents/SOPE/
+    ${HOME}/Documents/SOPE/SOPE-proj1/src/
     ${HOME}/Documents/SOPE/SOPE-proj1/
+    ${HOME}/Documents/SOPE/
+    ${HOME}/Documents/MINIX-LCOM/
 )
 
 for dir in ${directories[*]}
@@ -26,6 +33,6 @@ do
         diff -q /tmp/testeT_simpledu.txt /tmp/testeT_du.txt > /dev/null 2>&1 && echo OK || echo FAILED
         
         # Uncomment line below to print what's wrong (in case of test failed)
-        # diff -q -y /tmp/testeT_simpledu.txt /tmp/testeT_du.txt 
+        # diff -y /tmp/testeT_simpledu.txt /tmp/testeT_du.txt
     done
 done

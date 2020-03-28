@@ -5,12 +5,12 @@
 
 #define STAT_BLOCK_SIZE 512
 
-#define MAX_STRUCT_NAME     512
+#define MAX_PATH_SIZE 512
 
 typedef struct fileInfo {
     long int file_size;
     bool is_sub_dir, is_dir;
-    char name[MAX_STRUCT_NAME];
+    char name[MAX_PATH_SIZE];
 } FileInfo;
 
 static ssize_t read_fileInfo(FileInfo *fi, int fileno) {
@@ -47,6 +47,7 @@ static inline void handle_file_output(FileInfo *fi, Options *opt) {
     }
 }
 
+// IMPORTANT: Handles only directories read from the pipe
 static inline void handle_dir_output(FileInfo *fi, Options *opt) {
     // This never handles the case of printing the original
     // processe's directory at the end of everything
@@ -55,9 +56,8 @@ static inline void handle_dir_output(FileInfo *fi, Options *opt) {
             print_fileInfo(fi, opt);
     }
     else {
-        // Only case where we DON'T send stuff is this
-        // opt->separate_dirs && opt->max_depth && opt->depth_val < 1
-        if (!opt->separate_dirs || !opt->max_depth || opt->depth_val >= 1)
+        // Only case where we want to re-send the directory
+        if (!opt->max_depth || opt->depth_val > 0)
             write_fileInfo(fi, STDOUT_FILENO);
     }
 }
@@ -79,10 +79,10 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
     fi.name[0] = '\0';
 
     //get the complete path of the file called "name"
-    strncpy(fi.name, opt->path, MAX_STRUCT_NAME);
+    strncpy(fi.name, opt->path, MAX_PATH_SIZE);
     if (fi.name[strlen(fi.name) - 1] != '/')
         strcat(fi.name, "/");
-    strncat(fi.name, name, MAX_STRUCT_NAME);
+    strncat(fi.name, name, MAX_PATH_SIZE);
 
     if (lstat(fi.name, &st) < 0){
         perror("Error getting the file's stat struct");
@@ -142,7 +142,7 @@ int showDirec(Options * opt) {
     cur_dir.is_sub_dir = true;
     cur_dir.is_dir = true;
     cur_dir.file_size = 0;
-    strncpy(cur_dir.name, opt->path, MAX_STRUCT_NAME);
+    strncpy(cur_dir.name, opt->path, MAX_PATH_SIZE);
 
     Queue_t *dir_q = new_queue();
     if (dir_q == NULL) {
