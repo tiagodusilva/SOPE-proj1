@@ -3,9 +3,6 @@
 #include <unistd.h>
 #include "../include/queue.h"
 
-extern int childProcess[MAX_SIZE_LINE];
-extern int sizeChildProcess;
-
 #define STAT_BLOCK_SIZE 512
 
 #define MAX_STRUCT_NAME     512
@@ -197,7 +194,7 @@ int showDirec(Options * opt) {
             int frk = fork();
             if (frk) {
                 // Father
-                childProcess[sizeChildProcess++] = frk;
+                opt->childProcess[opt->sizeChildProcess++] = frk;
                 close(new_pipe[PIPE_WRITE]);
                 
                 free(sub_dir);

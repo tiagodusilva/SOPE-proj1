@@ -1,5 +1,6 @@
 #include "../include/utils.h"
 #include "../include/handleLog.h"
+#include "../include/handleSignal.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -7,7 +8,7 @@
 #include <unistd.h>
 
 void simpledu_startup(int argc, char *argv[], Options *opt) {
-    
+    opt->sizeChildProcess = 0; 
     opt->program_name = argv[0];
     opt->original_process = false;
 
@@ -31,6 +32,10 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
         } 
     }
 
+    if (setSignal(opt)) {
+        perror("SetSignal"); 
+        exit(1); 
+    } 
     startLog(opt);
 
 }

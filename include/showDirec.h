@@ -1,5 +1,4 @@
-#ifndef SOPE_PROJ1_SHOWFILE_H
-#define SOPE_PROJ1_SHOWFILE_H
+#pragma once 
 
 #include <dirent.h>
 #include <stdlib.h>
@@ -23,4 +22,3 @@
  */
 int showDirec(Options *opt);
 
-#endif //SOPE_PROJ1_SHOWFILE_H

@@ -18,6 +18,8 @@
 /** @brief Max size of pipe */
 #define MAXLINE 4096
 
+#define MAX_CHILDREN 100
+
 /**
  * @brief Struct to keep track of the simpledu parameters to be used\n
  * Also has a couple of extra things
@@ -35,6 +37,8 @@ typedef struct cmd_options {
     long block_size;
     int depth_val;
     char *path;
+    int childProcess[MAX_CHILDREN];   
+    int sizeChildProcess;              
 } Options;
 
 /**
