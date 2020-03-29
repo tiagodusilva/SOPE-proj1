@@ -2,6 +2,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include "../include/queue.h"
+#include <sys/types.h>
 
 #define STAT_BLOCK_SIZE 512
 
@@ -191,18 +192,23 @@ int showDirec(Options * opt) {
 
             int frk = fork();
             if (frk) {
-                // Father
-                opt->childProcess[opt->sizeChildProcess++] = frk;
-                close(new_pipe[PIPE_WRITE]);
-                
+                if (!opt->has_child_pgid && opt->original_process) {
+                    opt->has_child_pgid = true;
+                    opt->child_pgid = frk;
+                }
                 free(sub_dir);
             }
             else {
                 // Child
-                if (opt->original_process) {
-                    int newgrp;
-                    if ((newgrp = setpgrp()) < 0) {
-                        perror("Error on setprgrp\n");
+                if (!opt->has_child_pgid) {  // Case of the first child
+                    if (setgid(getpid())) {
+                        perror("Failed to set child's process group");
+                        exit(1);
+                    }
+                }
+                else {
+                    if (setgid(opt->child_pgid)) {
+                        perror("Failed to set child's process group");
                         exit(1);
                     }
                 }

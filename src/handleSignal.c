@@ -8,24 +8,18 @@
 void handlerFather(int signo){
     char key[1]; 
     //STOP children
-    for (int i = 0; i < thisOpt->sizeChildProcess; i++){
-        writeInLog(SEND_SIGNAL, "FATHER SEND STOP"); 
-        killpg(thisOpt->childProcess[i], SIGSTOP);        
-    }
+    killpg(thisOpt->child_pgid, SIGSTOP);
         
     write(STDOUT_FILENO, "Y/y to proceed | any other key to continue", 42); 
     read(STDIN_FILENO, &key, 1);
 
     if (strcmp("Y", key) == 0 || strcmp("y", key) == 0){
-        signal(SIGINT, SIG_DFL); 
-        raise(SIGINT); 
+        killpg(thisOpt->child_pgid, SIGINT);
+        exit(1);
     }
     
     //CONTINUE children
-    for (int i = 0; i < thisOpt->sizeChildProcess; i++){
-        writeInLog(SEND_SIGNAL, "FATHER SEND CONTINUE"); 
-        killpg(thisOpt->childProcess[i], SIGCONT);       
-    } 
+    killpg(thisOpt->child_pgid, SIGCONT);
 
 }
 
@@ -38,7 +32,8 @@ int setSignal(Options *opt){
         return 1; 
     }
 
-    if (opt->original_process){
+    if (opt->original_process) {
+
         writeInLog(CREATE, "FATHER");
         act.sa_handler = handlerFather;
         if (sigaction(SIGINT, &act, NULL) < 0){

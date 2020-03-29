@@ -8,7 +8,6 @@
 #include <unistd.h>
 
 void simpledu_startup(int argc, char *argv[], Options *opt) {
-    opt->sizeChildProcess = 0; 
     opt->program_name = argv[0];
     opt->original_process = false;
 
@@ -30,6 +29,13 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
             fprintf(stderr, "Not possible to set FATHER ENV\n"); 
             exit(1); 
         } 
+    }
+
+    if (opt->original_process) {
+        opt->has_child_pgid = false;
+    }
+    else {
+        opt->child_pgid = __getpgid(getpid());
     }
 
     startLog(opt);
