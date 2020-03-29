@@ -116,3 +116,6 @@ int parse_arguments(int argc, char *argv[], Options *opt);
  */
 
 void exec_next_dir(char *complete_path, Options *opt);
+
+
+void argvToString(int argc, char *argv[], char* res); 

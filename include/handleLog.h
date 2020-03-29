@@ -60,6 +60,10 @@ int writeInLog(action a, char * info);
 void closeLog(Options *opt);
  
 
- void optToString(Options *opt); 
+void optToString(Options *opt); 
   
 void info_pipe(FileInfo *fi, action a); 
+
+void entry(FileInfo fi, Options *opt);
+
+void sendSignal(pid_t pid, char * signal);

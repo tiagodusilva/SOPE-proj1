@@ -12,6 +12,7 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
     opt->program_name = argv[0];
     opt->original_process = false;
 
+
     if (parse_arguments(argc, argv, opt)) {
         perror("Invalid command");
         exit(1);
@@ -231,3 +232,5 @@ void exec_next_dir(char *complete_path, Options *opt) {
     vec[i] = NULL;
     execv(vec[0], vec);
 }
+
+

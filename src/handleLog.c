@@ -113,6 +113,7 @@ int writeInLog(action a, char *info){
         {
         case CREATE: 
             strncpy(action, "CREATE", MAX_SIZE_ACTION); 
+            fprintf(stderr, "MALDITO\n");
             break;
         case EXIT: 
             strncpy(action, "EXIT", MAX_SIZE_ACTION);
@@ -166,7 +167,22 @@ void closeLog(Options *opt) {
 
  void info_pipe(FileInfo *fi, action a){
     char *aux = (char*)calloc(MAX_SIZE_LINE, sizeof(char));
-    fileInfoString(fi, aux); 
+
+    fileInfoString(fi, aux);     
     writeInLog(a, aux); 
     free(aux); 
  }
+
+
+void entry(FileInfo cur_dir, Options *opt){
+    char c[MAX_SIZE_INFO]; 
+    sprintf(c, "%ld %s", cur_dir.file_size, opt->path); 
+    writeInLog(ENTRY, c); 
+}
+
+void sendSignal(pid_t pid, char * signal){
+    char aux[MAX_SIZE_LINE];
+    sprintf(aux, "%s %d", signal, pid); 
+    writeInLog(SEND_SIGNAL, aux); 
+}
+

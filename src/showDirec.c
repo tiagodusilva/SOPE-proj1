@@ -35,7 +35,7 @@ static void handle_file_output(FileInfo *fi, Options *opt) {
     if (opt->all && (!opt->max_depth || opt->depth_val > 0)) {
         if (opt->original_process){
             print_fileInfo(fi, opt);
-            info_pipe(fi, SEND_PIPE); 
+            info_pipe(fi, RECV_PIPE); 
         }
         else{
             write_fileInfo(fi, STDOUT_FILENO);   
@@ -165,9 +165,7 @@ int showDirec(Options * opt) {
         cur_dir.file_size += tmp;
     }
 
-    char c[MAX_SIZE_INFO]; 
-    sprintf(c, "%ld %s", cur_dir.file_size, opt->path); 
-    writeInLog(ENTRY, c); 
+        entry(cur_dir, opt); 
 
         if (closedir(direc) == -1){
         perror("Not possible to close directory\n");
