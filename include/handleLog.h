@@ -43,12 +43,11 @@ void startLog(Options *opt);
 /**
  * @brief Function that writes in the LOG folder
  * 
- * @param instant The time the information is being written
  * @param a Enumerator indicating the action 
  * @param info Extra information
  * @return int 1 upon error and 0 on success
  */
-int writeInLog(double instant, action a, char * info); 
+int writeInLog(action a, char * info); 
 
 /**
  * @brief Closes the log's file descriptor

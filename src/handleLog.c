@@ -1,8 +1,13 @@
 #include "../include/handleLog.h"
 
+#include <sys/time.h>
+
 #define NO_LOGS -42
 
-static int log_fd; /** @brief File descriptor for the log file**/ 
+#define START_TIME_FILENAME "/tmp/simpledu_start_time"
+
+static int log_fd = NO_LOGS; /** @brief File descriptor for the log file**/ 
+static struct timeval start;
 
 /**
  * @brief Creates logFile name 
@@ -10,8 +15,21 @@ static int log_fd; /** @brief File descriptor for the log file**/
  * @param logName Name of the variable LOG_FILENAME
  * @return int -1 upon error, else the pid of the created file
  */
-static int createLog(char * logName){     
- 
+static int createLog(char * logName){
+    // Only called by father, we can exploit that to set the initial instant
+
+    gettimeofday(&start, NULL);
+    int start_fd;
+    if ((start_fd = open(START_TIME_FILENAME, O_WRONLY | O_CREAT | O_TRUNC | O_SYNC, S_IRUSR | S_IWUSR)) < 0) {
+        perror("Failed to create the tmp file");
+        return 1;
+    }
+    if (write(start_fd, &start, sizeof(struct timeval)) < 0) {
+        perror("Failed to write the initial instant to the tmp file");
+        return 1;
+    }
+    close(start_fd);
+
     if ((log_fd = open(logName, O_WRONLY | O_CREAT | O_TRUNC | O_APPEND | O_SYNC, S_IRUSR | S_IWUSR)) < 0){
         fprintf(stderr, "Not possible to open file %s\n", logName); 
         return 1; 
@@ -20,6 +38,12 @@ static int createLog(char * logName){
     return 0;
 }
 
+static inline double get_instant() {
+    struct timeval end;
+    gettimeofday(&end, NULL);
+    return ((end.tv_sec - start.tv_sec) * 1000000u +
+            end.tv_usec - start.tv_usec) / 1.e6;
+}
 
 /**
  * @brief It opens the log file in append mode
@@ -27,8 +51,21 @@ static int createLog(char * logName){
  * @param logName Name of the log file
  * @return int 0 upon success, 1 otherwise
  */
-static int openLog(char * logName){
- 
+static int openLog(char * logName) {
+    // Only called by children, we can exploit that :D
+
+    int start_fd;
+    if ((start_fd = open(START_TIME_FILENAME, O_RDONLY, S_IRUSR | S_IWUSR)) < 0) {
+        perror("Failed to open the tmp file");
+        return 1;
+    }
+    if (read(start_fd, &start, sizeof(struct timeval)) < 0) {
+        perror("Failed to read the initial instant to the tmp file");
+        return 1;
+    }
+    close(start_fd);
+    
+
     if ((log_fd = open(logName, O_WRONLY | O_SYNC | O_APPEND, S_IRUSR | S_IWUSR)) < 0){
         fprintf(stderr, "Not possible to open file %s\n", logName); 
         return 1; 
@@ -59,7 +96,7 @@ void startLog(Options *opt) {
 
 }
 
-int writeInLog(double instant, action a, char *info){
+int writeInLog(action a, char *info){
 
     if (log_fd != NO_LOGS) {
         pid_t pid = getpid(); 
@@ -92,15 +129,15 @@ int writeInLog(double instant, action a, char *info){
             strncpy(action, "ENTRY", MAX_SIZE_ACTION);
             break; 
         default:
-            strncpy(action, "CREATE", MAX_SIZE_ACTION);
+            strncpy(action, "UNKNOWN", MAX_SIZE_ACTION);
             break;
         }
 
-        int sizeWritten = snprintf(line, MAX_SIZE_INFO, "%-8.2f - %-8d - %-15s - %s \n", instant, pid, action, info);
-        lseek(log_fd, +0, SEEK_END); 
+        int sizeWritten = snprintf(line, MAX_SIZE_INFO, "%-8.2f - %-8d - %-15s - %s \n", get_instant(), pid, action, info);
+
         if (write(log_fd, line, sizeWritten) == -1){
-            fprintf(stderr, "Impossible to write on folder\n"); 
-            return 1; 
+            perror("Failed to write to log");
+            return 1;
         }
     }
 
@@ -111,10 +148,14 @@ void closeLog(Options *opt) {
 
     if (log_fd != NO_LOGS) {
         if (opt->original_process) {
-            writeInLog(10, EXIT, "FATHER");
+            writeInLog(EXIT, "FATHER");
+            close(log_fd);
+            remove(START_TIME_FILENAME);
+        }
+        else {
+            writeInLog(EXIT, "CHILD");
             close(log_fd);
         }
-        else writeInLog(10, EXIT, "CHILD");
     }
 
 }

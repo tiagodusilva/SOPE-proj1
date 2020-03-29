@@ -1,7 +1,6 @@
 #include "../include/handleSignal.h"
 
 
-
 /**
  * @brief It handles the father SIGINT interrupt
  * 
@@ -10,13 +9,12 @@ void handlerFather(int signo){
     char key[1]; 
     //STOP children
     for (int i = 0; i < thisOpt->sizeChildProcess; i++){
-        writeInLog(42, SEND_SIGNAL, "FATHER SEND STOP"); 
+        writeInLog(SEND_SIGNAL, "FATHER SEND STOP"); 
         killpg(thisOpt->childProcess[i], SIGSTOP);        
     }
         
     write(STDOUT_FILENO, "Y/y to proceed | any other key to continue", 42); 
-    read(STDIN_FILENO, &key, 1); 
-    fflush(STDIN_FILENO); 
+    read(STDIN_FILENO, &key, 1);
 
     if (strcmp("Y", key) == 0 || strcmp("y", key) == 0){
         signal(SIGINT, SIG_DFL); 
@@ -25,7 +23,7 @@ void handlerFather(int signo){
     
     //CONTINUE children
     for (int i = 0; i < thisOpt->sizeChildProcess; i++){
-        writeInLog(42, SEND_SIGNAL, "FATHER SEND CONTINUE"); 
+        writeInLog(SEND_SIGNAL, "FATHER SEND CONTINUE"); 
         killpg(thisOpt->childProcess[i], SIGCONT);       
     } 
 
@@ -41,7 +39,7 @@ int setSignal(Options *opt){
     }
 
     if (opt->original_process){
-        writeInLog(17, CREATE, "FATHER");
+        writeInLog(CREATE, "FATHER");
         act.sa_handler = handlerFather;
         if (sigaction(SIGINT, &act, NULL) < 0){
             perror("Error set father signal"); 
