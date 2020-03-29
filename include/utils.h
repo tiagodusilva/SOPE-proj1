@@ -32,6 +32,14 @@
  * \tThe other bools are false\n
  * depth_val should only be used when max_depth is set to true
  */
+
+typedef struct fileInfo {
+    long int file_size;
+    bool is_sub_dir, is_dir;
+    char name[MAX_PATH_SIZE];
+} FileInfo;
+
+
 typedef struct cmd_options {
     char *program_name;
     bool original_process;                   /** @brief True if it's the original process */

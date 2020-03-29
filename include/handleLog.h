@@ -10,6 +10,7 @@
 
 #include "../include/utils.h"
 
+
 /**
  * @brief Enum for action to written, in order to avoid string errors
  * 
@@ -33,6 +34,8 @@ typedef enum{
 
 #define MAX_SIZE_ACTION     20
 
+
+
 /**
  * @brief Starts the log file (if necessary)
  * 
@@ -55,3 +58,8 @@ int writeInLog(action a, char * info);
  * @param opt 
  */
 void closeLog(Options *opt);
+ 
+
+ void optToString(Options *opt); 
+  
+void info_pipe(FileInfo *fi, action a); 

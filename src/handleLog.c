@@ -9,6 +9,10 @@
 static int log_fd = NO_LOGS; /** @brief File descriptor for the log file**/ 
 static struct timeval start;
 
+static inline void fileInfoString(FileInfo *fi, char* res){
+    sprintf(res, " %ld %s || IS_DIR: %d || IS_SUBDIR: %d", fi->file_size, fi->name, fi->is_dir, fi->is_sub_dir); 
+}
+
 /**
  * @brief Creates logFile name 
  * 
@@ -159,3 +163,10 @@ void closeLog(Options *opt) {
     }
 
 }
+
+ void info_pipe(FileInfo *fi, action a){
+    char *aux = (char*)calloc(MAX_SIZE_LINE, sizeof(char));
+    fileInfoString(fi, aux); 
+    writeInLog(a, aux); 
+    free(aux); 
+ }

@@ -5,11 +5,6 @@
 
 #define STAT_BLOCK_SIZE 512
 
-typedef struct fileInfo {
-    long int file_size;
-    bool is_sub_dir, is_dir;
-    char name[MAX_PATH_SIZE];
-} FileInfo;
 
 static ssize_t read_fileInfo(FileInfo *fi, int fileno) {
     return read(fileno, fi, sizeof(*fi));
@@ -36,13 +31,18 @@ static inline void print_fileInfo(FileInfo *fi, Options *opt) {
     printf("%ld\t%s\n", calculate_size(fi->file_size, opt), fi->name);
 }
 
-static inline void handle_file_output(FileInfo *fi, Options *opt) {
+static void handle_file_output(FileInfo *fi, Options *opt) {
     if (opt->all && (!opt->max_depth || opt->depth_val > 0)) {
-        if (opt->original_process)
+        if (opt->original_process){
             print_fileInfo(fi, opt);
-        else
-            write_fileInfo(fi, STDOUT_FILENO);
+            info_pipe(fi, SEND_PIPE); 
+        }
+        else{
+            write_fileInfo(fi, STDOUT_FILENO);   
+            info_pipe(fi, SEND_PIPE); 
+        }     
     }
+    
 }
 
 // IMPORTANT: Handles only directories read from the pipe
@@ -50,14 +50,19 @@ static inline void handle_dir_output(FileInfo *fi, Options *opt) {
     // This never handles the case of printing the original
     // processe's directory at the end of everything
     if (opt->original_process) {
-        if (!opt->max_depth || opt->depth_val > 0)
+        if (!opt->max_depth || opt->depth_val > 0){
             print_fileInfo(fi, opt);
+            info_pipe(fi, RECV_PIPE);
+        }
     }
     else {
         // Only case where we want to re-send the directory
-        if (!opt->max_depth || opt->depth_val > 0)
+        if (!opt->max_depth || opt->depth_val > 0){
             write_fileInfo(fi, STDOUT_FILENO);
+            info_pipe(fi, SEND_PIPE);
+        }
     }
+    
 }
 
 /**
@@ -160,7 +165,11 @@ int showDirec(Options * opt) {
         cur_dir.file_size += tmp;
     }
 
-    if (closedir(direc) == -1){
+    char c[MAX_SIZE_INFO]; 
+    sprintf(c, "%ld %s", cur_dir.file_size, opt->path); 
+    writeInLog(ENTRY, c); 
+
+        if (closedir(direc) == -1){
         perror("Not possible to close directory\n");
         return 1;
     }

@@ -8,8 +8,8 @@
 void handlerFather(int signo){
     char key[1]; 
     //STOP children
+    writeInLog(SEND_SIGNAL, "SIGSTOP"); 
     for (int i = 0; i < thisOpt->sizeChildProcess; i++){
-        writeInLog(SEND_SIGNAL, "FATHER SEND STOP"); 
         killpg(thisOpt->childProcess[i], SIGSTOP);        
     }
         
@@ -17,13 +17,14 @@ void handlerFather(int signo){
     read(STDIN_FILENO, &key, 1);
 
     if (strcmp("Y", key) == 0 || strcmp("y", key) == 0){
+        writeInLog(SEND_SIGNAL, "SIGINT"); 
         signal(SIGINT, SIG_DFL); 
         raise(SIGINT); 
     }
     
     //CONTINUE children
+    writeInLog(SEND_SIGNAL, "SIGCONT"); 
     for (int i = 0; i < thisOpt->sizeChildProcess; i++){
-        writeInLog(SEND_SIGNAL, "FATHER SEND CONTINUE"); 
         killpg(thisOpt->childProcess[i], SIGCONT);       
     } 
 
@@ -48,3 +49,4 @@ int setSignal(Options *opt){
     }
     return 0;
 }
+
