@@ -167,7 +167,7 @@ void closeLog(Options *opt) {
     char *aux = (char*)calloc(MAX_SIZE_LINE, sizeof(char));
 
     fileInfoString(fi, aux);     
-    //writeInLog(a, aux); 
+    writeInLog(a, aux); 
   
  }
 

@@ -35,7 +35,7 @@ static void handle_file_output(FileInfo *fi, Options *opt) {
     if (opt->all && (!opt->max_depth || opt->depth_val > 0)) {
         if (opt->original_process){
             print_fileInfo(fi, opt);
-            info_pipe(fi, RECV_PIPE); 
+            if (opt->finished_local) info_pipe(fi,RECV_PIPE); 
         }
         else{
             write_fileInfo(fi, STDOUT_FILENO);   
@@ -165,12 +165,13 @@ int showDirec(Options * opt) {
             return 1;
         cur_dir.file_size += tmp;
     }
+    opt->finished_local = true; 
 
         if (closedir(direc) == -1){
             perror("Not possible to close directory\n");
             return 1;
     }
-        entry(cur_dir, opt); 
+    entry(cur_dir, opt); 
 
     if (!queue_is_empty(dir_q)) {
         
@@ -294,10 +295,12 @@ int showDirec(Options * opt) {
         free_queue_and_data(pipe_q);
     }
 
-    if (opt->original_process)
+    if (opt->original_process) 
         print_fileInfo(&cur_dir, opt);
+    
     else
-        write_fileInfo(&cur_dir, STDOUT_FILENO);
+        write_fileInfo(&cur_dir, STDOUT_FILENO); 
+    
 
     free_queue_and_data(dir_q);
     return 0;

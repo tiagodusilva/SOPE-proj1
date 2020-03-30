@@ -11,7 +11,7 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
     opt->sizeChildProcess = 0; 
     opt->program_name = argv[0];
     opt->original_process = false;
-
+    
 
     if (parse_arguments(argc, argv, opt)) {
         perror("Invalid command");
@@ -21,6 +21,7 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
     // Father creates a new env variable with it's pid as value
     if (getenv("SIMPLEDUFATHER") == NULL){
         opt->original_process = true; 
+        opt->finished_local = false; 
         if (putenv("SIMPLEDUFATHER") < 0){
             fprintf(stderr, "Not possible to create FATHER ENV\n");
             exit(1); 
