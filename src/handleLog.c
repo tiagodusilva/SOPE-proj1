@@ -107,13 +107,11 @@ int writeInLog(action a, char *info){
 
         char line [MAX_SIZE_LINE] = "";  
         char action[MAX_SIZE_ACTION];
-    
         //handle the enum
         switch (a)
         {
         case CREATE: 
             strncpy(action, "CREATE", MAX_SIZE_ACTION); 
-            fprintf(stderr, "MALDITO\n");
             break;
         case EXIT: 
             strncpy(action, "EXIT", MAX_SIZE_ACTION);
@@ -139,7 +137,7 @@ int writeInLog(action a, char *info){
         }
 
         int sizeWritten = snprintf(line, MAX_SIZE_INFO, "%-8.2f - %-8d - %-15s - %s \n", get_instant(), pid, action, info);
-
+    
         if (write(log_fd, line, sizeWritten) == -1){
             perror("Failed to write to log");
             return 1;
@@ -186,3 +184,13 @@ void sendSignal(pid_t pid, char * signal){
     writeInLog(SEND_SIGNAL, aux); 
 }
 
+void create(int argc, char* argv[]){
+    
+    char *optString = (char * )calloc(MAX_PATH_SIZE, sizeof(char)); 
+    for (int i = 0; i < argc; i++){
+        strcat(optString, argv[i]); 
+        strcat(optString, " ");
+    }
+    writeInLog(CREATE, optString); 
+    free(optString);
+}

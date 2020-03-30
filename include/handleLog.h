@@ -67,3 +67,5 @@ void info_pipe(FileInfo *fi, action a);
 void entry(FileInfo fi, Options *opt);
 
 void sendSignal(pid_t pid, char * signal);
+
+void create(int argc, char* argv[]);

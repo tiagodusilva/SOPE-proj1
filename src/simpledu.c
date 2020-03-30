@@ -14,15 +14,9 @@
 
 int main(int argc, char *argv[], char *envp[]) {
     Options opt;             
-   
-    char optString[MAX_SIZE_LINE]; 
-    for (int i = 0; i < argc; i++){
-        strcat(optString, argv[i]); 
-        strcat(optString, " ");
-    }  
-    writeInLog(0, optString); 
-
+    
     simpledu_startup(argc, argv, &opt);
+    create(argc, argv);
 
     if (showDirec(&opt)){
         perror("Show directory error");
