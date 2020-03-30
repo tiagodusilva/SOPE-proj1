@@ -42,6 +42,7 @@ static void handle_file_output(FileInfo *fi, Options *opt) {
             info_pipe(fi, SEND_PIPE); 
         }     
     }
+
     
 }
 
@@ -165,12 +166,11 @@ int showDirec(Options * opt) {
         cur_dir.file_size += tmp;
     }
 
-        entry(cur_dir, opt); 
-
         if (closedir(direc) == -1){
-        perror("Not possible to close directory\n");
-        return 1;
+            perror("Not possible to close directory\n");
+            return 1;
     }
+        entry(cur_dir, opt); 
 
     if (!queue_is_empty(dir_q)) {
         
