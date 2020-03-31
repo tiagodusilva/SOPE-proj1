@@ -19,7 +19,7 @@ directories=(
     ${HOME}/Documents/SOPE/SOPE-proj1/src/
     ${HOME}/Documents/SOPE/SOPE-proj1/
     ${HOME}/Documents/SOPE/
-    ${HOME}/Documents/CGRA/
+    ${HOME}/.config/
 )
 
 for dir in ${directories[*]}

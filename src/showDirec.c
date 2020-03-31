@@ -190,24 +190,24 @@ int showDirec(Options * opt) {
                 exit(1);
             }
 
-            int frk = fork();
+            pid_t frk = fork();
             if (frk) {
                 if (!opt->has_child_pgid && opt->original_process) {
                     opt->has_child_pgid = true;
-                    opt->child_pgid = frk;
+                    opt->child_pgid = (gid_t) frk;
                 }
                 free(sub_dir);
             }
             else {
                 // Child
                 if (!opt->has_child_pgid) {  // Case of the first child
-                    if (setgid(getpid())) {
-                        perror("Failed to set child's process group");
+                    if (setpgid(0, (gid_t) getpid())) {
+                        perror("Failed to set first child's process group");
                         exit(1);
                     }
                 }
                 else {
-                    if (setgid(opt->child_pgid)) {
+                    if (setpgid(0, opt->child_pgid)) {
                         perror("Failed to set child's process group");
                         exit(1);
                     }
