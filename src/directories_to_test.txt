@@ -1,0 +1,4 @@
+/home/tiago/Documents/SOPE/SOPE-proj1/src/
+/home/tiago/Documents/SOPE/SOPE-proj1/
+/home/tiago/Documents/SOPE/
+/home/tiago/.config/
