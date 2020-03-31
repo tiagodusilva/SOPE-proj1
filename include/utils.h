@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <limits.h>
+#include <unistd.h>
 
 /** @brief The default block size to be used */
 #define DEFAULT_BLOCK_SIZE 1024
@@ -17,8 +18,6 @@
 
 /** @brief Max size of pipe */
 #define MAXLINE 4096
-
-#define MAX_CHILDREN 100
 
 #define MAX_PATH_SIZE 512
 #define MAX_PATH_SIZE_CHECKED (MAX_PATH_SIZE - 100)
@@ -50,8 +49,8 @@ typedef struct cmd_options {
     int depth_val;
     char *path;
     
-    int childProcess[MAX_CHILDREN];   
-    int sizeChildProcess;              
+    bool has_child_pgid;
+    gid_t child_pgid;             
 } Options;
 
 /**
