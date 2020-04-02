@@ -49,6 +49,8 @@ typedef struct cmd_options {
     int depth_val;
     char *path;
     
+    int return_val; // Used for the case of broken symlinks
+
     pid_t child_pgid;             
 } Options;
 

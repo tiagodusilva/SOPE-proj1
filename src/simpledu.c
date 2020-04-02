@@ -25,5 +25,5 @@ int main(int argc, char *argv[], char *envp[]) {
 
     simpledu_shutdown(&opt);
 
-    exit(0);
+    exit(opt.return_val);
 }

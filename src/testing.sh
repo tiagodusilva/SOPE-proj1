@@ -37,8 +37,8 @@ do
     for i in ${!command_args[*]}
     do
         echo -n "Test no. $i: "
-        (${simpledu_location} ${command_args[$i]} ${dir} || echo $?) | sort -k2 > /tmp/testeT_simpledu.txt
-        (du ${command_args[$i]} ${dir} || echo $?) | sort -k2 > /tmp/testeT_du.txt
+        (${simpledu_location} ${command_args[$i]} ${dir} 2>"\dev\null" || echo $?) | sort -k2 > /tmp/testeT_simpledu.txt
+        (du ${command_args[$i]} ${dir} 2>"\dev\null" || echo $?) | sort -k2 > /tmp/testeT_du.txt
         diff -q /tmp/testeT_simpledu.txt /tmp/testeT_du.txt > /dev/null 2>&1 && echo OK || echo FAILED
         
         # Uncomment line below to print what's wrong (in case of test failed)

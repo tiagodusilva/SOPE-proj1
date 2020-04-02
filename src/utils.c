@@ -11,7 +11,7 @@
 void simpledu_startup(int argc, char *argv[], Options *opt) {
     opt->program_name = argv[0];
     opt->original_process = false;
-    
+    opt->return_val = 0;
 
     if (parse_arguments(argc, argv, opt)) {
         perror("Invalid command");

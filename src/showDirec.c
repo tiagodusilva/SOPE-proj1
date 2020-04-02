@@ -39,12 +39,11 @@ static void handle_file_output(FileInfo *fi, Options *opt) {
             print_fileInfo(fi, opt);
             if (opt->finished_local) info_pipe(fi,RECV_PIPE); 
         }
-        else{
+        else {
             write_fileInfo(fi, STDOUT_FILENO);   
             info_pipe(fi, SEND_PIPE); 
         }     
     }
-
     
 }
 
@@ -91,8 +90,9 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
     strncat(fi.name, name, MAX_PATH_SIZE);
 
     if (lstat(fi.name, &st) < 0){
+        fprintf(stderr, "lstat %s\n", fi.name);
         perror("Error getting the file's stat struct");
-        exit(-1); 
+        exit(1); 
     }
 
     if (S_ISLNK(st.st_mode) && !opt->dereference) {
@@ -105,9 +105,17 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
         if (S_ISLNK(st.st_mode)) {
             // If it was a symlink and wee have to dereference it
             // We stat the file it points to instead
-            if (stat(fi.name, &st) < 0){
-                perror("Error getting the file's stat struct");
-                exit(-1); 
+            if (stat(fi.name, &st) < 0) {
+                if (errno != ENOENT) {
+                    perror("Error getting the file's stat struct");
+                    exit(1);
+                }
+                else {
+                    // Just like du, print to stderr, but keep going!
+                    fprintf(stderr, "simpledu: cannot access '%s'\n", fi.name);
+                    opt->return_val = 1;
+                    return -1;
+                }
             }
         }
 
@@ -119,13 +127,12 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
         else if (S_ISDIR(st.st_mode) && strcmp(name, "..")) {
             if (strcmp(name, ".")) {
                 // If it's not a '.' file
-                if (!opt->separate_dirs || !opt->max_depth || opt->depth_val > 0) {
-                    // ADD TO QUEUE
-                    size_t len = strlen(fi.name) + 1;
-                    char *new_path = (char*) malloc(len * sizeof(char));
-                    strncpy(new_path, fi.name, len);
-                    queue_push_back(queue, new_path);
-                }
+                // ADD TO QUEUE
+                size_t len = strlen(fi.name) + 1;
+                char *new_path = (char*) malloc(len * sizeof(char));
+                strncpy(new_path, fi.name, len);
+                queue_push_back(queue, new_path);
+
                 return 0;
             }
             else {
@@ -163,9 +170,8 @@ int showDirec(Options * opt) {
 
     // Take care of all regular files and save our directories for later
     while((dirent = readdir(direc)) != NULL){
-        if (tmp = analyze_file(opt, dirent->d_name, dir_q), tmp == -1)  
-            return 1;
-        cur_dir.file_size += tmp;
+        if (tmp = analyze_file(opt, dirent->d_name, dir_q), tmp != -1)
+            cur_dir.file_size += tmp;
     }
     opt->finished_local = true; 
 
@@ -242,6 +248,7 @@ int showDirec(Options * opt) {
         int termination_status = 0, waited = 0;
         pid_t any = -1;
 
+        errno = 0; // Set default so it won't break on the first if statement of the loop
         while (num_childs > 0 || !queue_is_empty(pipe_q)) {
 
             if ((waited = waitpid(any, &termination_status, WNOHANG)) > 0) {
@@ -254,7 +261,8 @@ int showDirec(Options * opt) {
                 }
                 
                 if (termination_status != 0) {
-                    fprintf(stderr, "A child has terminated unsuccessfully\n");
+                    // fprintf(stderr, "A child has terminated unsuccessfully\n");
+                    opt->return_val = 1;
                     termination_status = 0;
                 }
 
