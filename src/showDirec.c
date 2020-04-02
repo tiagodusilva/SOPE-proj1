@@ -141,6 +141,11 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
                 return fi.file_size;
             }
         }
+        else if (S_ISFIFO(st.st_mode)) {
+            fi.file_size = get_size(&st, opt);
+            handle_file_output(&fi, opt);
+            return fi.file_size;
+        }
     }
 
     return 0;
@@ -255,7 +260,7 @@ int showDirec(Options * opt) {
 
                 --num_childs;
 
-                if (errno != ECHILD && errno != 0) {
+                if (errno != ECHILD && errno != 0 && errno != EINTR) {
                     perror("Error on waitpid");
                     exit(1);
                 }
@@ -299,7 +304,8 @@ int showDirec(Options * opt) {
                 else if (read_return == 0) {
                     queue_push_back(pipe_q, cur_pipe);
                 }
-                else if (read_return != 0) {
+                else if (read_return != 0 && errno != EINTR) {
+                    // If it was EINTR, no data was read, so we lit fam
                     perror("Desync caused the read to not have enough bytes in the pipe");
                     free_queue_and_data(pipe_q);
                     free_queue_and_data(dir_q);
