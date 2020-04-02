@@ -49,8 +49,7 @@ typedef struct cmd_options {
     int depth_val;
     char *path;
     
-    bool has_child_pgid;
-    gid_t child_pgid;             
+    pid_t child_pgid;             
 } Options;
 
 /**

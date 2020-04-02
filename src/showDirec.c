@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include "../include/queue.h"
 #include <sys/types.h>
+#include <signal.h>
 
 #define STAT_BLOCK_SIZE 512
 
@@ -199,28 +200,19 @@ int showDirec(Options * opt) {
             }
 
             pid_t frk = fork();
-            if (frk) {
-                if (!opt->has_child_pgid && opt->original_process) {
-                    opt->has_child_pgid = true;
-                    opt->child_pgid = (gid_t) frk;
-                }
-                free(sub_dir);
-            }
-            else {
-                // Child
-                if (!opt->has_child_pgid) {  // Case of the first child
-                    if (setpgid(0, (gid_t) getpid())) {
-                        perror("Failed to set first child's process group");
-                        exit(1);
-                    }
-                }
-                else {
-                    if (setpgid(0, opt->child_pgid)) {
-                        perror("Failed to set child's process group");
-                        exit(1);
-                    }
-                }
-
+            switch (frk) {
+            case -1:
+                perror("Failed to fork");
+                exit(1);
+                break;
+            case 0:
+                if (setpgid(0, opt->child_pgid)) {
+                    // fprintf(stderr, "Fkd %d\n", opt->child_pgid);
+                    // write(STDERR_FILENO, "Fkd\n", 4);
+                    perror("Failed to set child's process group");
+                    exit(1);
+                }                
+                
                 // Handles dup2 with stdout and pipe
                 if (dup2(new_pipe[PIPE_WRITE], STDOUT_FILENO) == -1) {
                     perror("Failed to dup2");
@@ -237,25 +229,35 @@ int showDirec(Options * opt) {
                 exec_next_dir(sub_dir, opt);
                 perror("Failed to exec to the next sub directory");
                 exit(1);
+            default:
+                free(sub_dir);
+                break;
             }
         }
         
         // TIME TO READ ALL THE CHILD'S PIPES
 
-        int termination_status = 0;
-        pid_t any = -1;
         FileInfo received_file;
+        int num_childs = queue_size(pipe_q);
+        int termination_status = 0, waited = 0;
+        pid_t any = -1;
 
-        while (waitpid(any, &termination_status, WNOHANG) >= 0 || !queue_is_empty(pipe_q)) {
+        while (num_childs > 0 || !queue_is_empty(pipe_q)) {
 
-            if (errno != ECHILD && errno != 0) {
-                perror("Error on waitpid");
-                exit(1);
-            }
-            
-            if (termination_status != 0) {
-                fprintf(stderr, "A child has terminated unsuccessfully\n");
-                termination_status = 0;
+            if ((waited = waitpid(any, &termination_status, WNOHANG)) > 0) {
+
+                --num_childs;
+
+                if (errno != ECHILD && errno != 0) {
+                    perror("Error on waitpid");
+                    exit(1);
+                }
+                
+                if (termination_status != 0) {
+                    fprintf(stderr, "A child has terminated unsuccessfully\n");
+                    termination_status = 0;
+                }
+
             }
 
             // Rotate the available pipes
@@ -299,6 +301,7 @@ int showDirec(Options * opt) {
         }
 
         free_queue_and_data(pipe_q);
+
     }
 
     if (opt->original_process) 

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <wait.h>
 
 void simpledu_startup(int argc, char *argv[], Options *opt) {
     opt->program_name = argv[0];
@@ -34,10 +35,63 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
     }
 
     if (opt->original_process) {
-        opt->has_child_pgid = false;
+        int p[2];
+        if (pipe(p)) {
+            perror("Failed to create pipe");
+            exit(1);
+        }
+        
+        opt->child_pgid = fork();
+
+        switch (opt->child_pgid)
+        {
+        case -1:
+            // Error
+            perror("Failed to fork the init child");
+            exit(1);
+            break;
+        case 0:
+            // Child
+            close(p[PIPE_READ]);
+
+            if (setpgid(0, getpid())) {
+                perror("Failed to set the group leader");
+                exit(1);
+            }
+
+            write(p[PIPE_WRITE], "D", 1);
+            close(p[PIPE_WRITE]);
+
+            // fprintf(stderr, "pgid: %d\n", getpgrp());
+            // write(STDERR_FILENO, "BOI\n", 4);
+            while (true)
+                sleep(99);
+
+            exit(1);
+            break;
+        default:
+            // Father
+            close(p[PIPE_WRITE]);
+
+            char buf[4];
+            int read_ret = 0;
+            while ((read_ret = read(p[PIPE_READ], buf, 1)) != 0) {
+                if (read_ret == 1) {
+                    break;
+                }
+                else {
+                    perror("Error on read");
+                    exit(1);
+                }
+            }
+
+            close(p[PIPE_READ]);
+            break;
+        }
+
     }
     else {
-        opt->child_pgid = __getpgid(getpid());
+        opt->child_pgid = getpgrp();
     }
 
     startLog(opt);
@@ -45,18 +99,16 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
     if (setSignal(opt)) {
         perror("SetSignal"); 
         exit(1); 
-    } 
+    }
 
 }
 
 void simpledu_shutdown(Options *opt) {
 
-    //Delete father env variable
-    if (opt->original_process){
-        if (unsetenv("SIMPLEDUFATHER") < 0){
-            perror("Not possible to remove FATHER ENV");
-            exit(1); 
-        }
+    if (opt->original_process) {
+        kill(opt->child_pgid, SIGTERM);
+        int aux;
+        waitpid(opt->child_pgid, &aux, 0);
     }
 
     closeLog(opt);
