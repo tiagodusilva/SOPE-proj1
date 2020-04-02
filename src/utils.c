@@ -230,7 +230,18 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
                     perror("Path is too large");
                     exit(1);
                 }
-                opt->path = argv[cur_arg];
+                if (argv[cur_arg][0] == '~') {
+                    // Get the user's home directory
+                    char *home = getenv("HOME");
+                    if (home == NULL) {
+                        perror("Could not find the user's home directory");
+                        exit(1);
+                    }
+                    strncpy(opt->path, home, MAX_PATH_SIZE);
+                    strncat(opt->path, argv[cur_arg] + 1, MAX_PATH_SIZE - strlen(opt->path));
+                }
+                else
+                    opt->path = argv[cur_arg];
             }
 
             ++cur_arg;
