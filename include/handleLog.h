@@ -43,14 +43,8 @@ typedef enum{
  */
 void startLog(Options *opt);
 
-/**
- * @brief Function that writes in the LOG folder
- * 
- * @param a Enumerator indicating the action 
- * @param info Extra information
- * @return int 1 upon error and 0 on success
- */
-int writeInLog(action a, char * info); 
+
+// int writeInLog(action a, char * info); 
 
 /**
  * @brief Closes the log's file descriptor
@@ -59,13 +53,15 @@ int writeInLog(action a, char * info);
  */
 void closeLog(Options *opt);
  
-
-void optToString(Options *opt); 
   
-void info_pipe(FileInfo *fi, action a); 
+void log_info_pipe(FileInfo *fi, action a); 
 
-void entry(FileInfo fi, Options *opt);
+void log_entry(FileInfo *fi, Options *opt);
 
-void sendSignal(pid_t pid, char * signal);
+void log_sendSignal(pid_t pid, char * signal);
 
-void create(int argc, char* argv[]);
+void log_receiveSignal(char * signal);
+
+void log_exit(Options *opt);
+
+void log_create(int argc, char* argv[]);

@@ -8,36 +8,64 @@
 #include <unistd.h>
 #include <wait.h>
 
+static Options *at_exit_opt;
+
+/**
+ * @brief Handles everything the program needs to end
+ */
+void simpledu_shutdown() {
+
+    if (at_exit_opt->original_process) {
+        kill(at_exit_opt->child_pgid, SIGTERM);
+        int aux;
+        waitpid(at_exit_opt->child_pgid, &aux, 0);
+    }
+
+    log_exit(at_exit_opt);
+    closeLog(at_exit_opt);
+
+    free(at_exit_opt);
+
+}
+
 void simpledu_startup(int argc, char *argv[], Options *opt) {
+    at_exit_opt = opt;
+    atexit(simpledu_shutdown);
+
     opt->program_name = argv[0];
     opt->original_process = false;
     opt->return_val = 0;
 
     if (parse_arguments(argc, argv, opt)) {
         perror("Invalid command");
+        opt->return_val = 1;
         exit(1);
     }
 
     // Father creates a new env variable with it's pid as value
     if (getenv("SIMPLEDUFATHER") == NULL){
-        opt->original_process = true; 
-        opt->finished_local = false; 
+        opt->original_process = true;
         if (putenv("SIMPLEDUFATHER") < 0){
             fprintf(stderr, "Not possible to create FATHER ENV\n");
+            opt->return_val = 1;
             exit(1); 
         }
         char pid_string[20]; // Just needs to store the PID
         sprintf(pid_string, "%d", getpid());
         if (setenv("SIMPLEDUFATHER", pid_string, 1) < 0){
             fprintf(stderr, "Not possible to set FATHER ENV\n"); 
+            opt->return_val = 1;
             exit(1); 
         } 
     }
+
+    startLog(opt);
 
     if (opt->original_process) {
         int p[2];
         if (pipe(p)) {
             perror("Failed to create pipe");
+            opt->return_val = 1;
             exit(1);
         }
         
@@ -48,6 +76,7 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
         case -1:
             // Error
             perror("Failed to fork the init child");
+            opt->return_val = 1;
             exit(1);
             break;
         case 0:
@@ -56,17 +85,17 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
 
             if (setpgid(0, getpid())) {
                 perror("Failed to set the group leader");
+                opt->return_val = 1;
                 exit(1);
             }
 
             write(p[PIPE_WRITE], "D", 1);
             close(p[PIPE_WRITE]);
 
-            // fprintf(stderr, "pgid: %d\n", getpgrp());
-            // write(STDERR_FILENO, "BOI\n", 4);
             while (true)
                 sleep(99);
 
+            opt->return_val = 1;
             exit(1);
             break;
         default:
@@ -81,6 +110,7 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
                 }
                 else {
                     perror("Error on read");
+                    opt->return_val = 1;
                     exit(1);
                 }
             }
@@ -94,24 +124,11 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
         opt->child_pgid = getpgrp();
     }
 
-    startLog(opt);
-
     if (setSignal(opt)) {
         perror("SetSignal"); 
+        opt->return_val = 1;
         exit(1); 
     }
-
-}
-
-void simpledu_shutdown(Options *opt) {
-
-    if (opt->original_process) {
-        kill(opt->child_pgid, SIGTERM);
-        int aux;
-        waitpid(opt->child_pgid, &aux, 0);
-    }
-
-    closeLog(opt);
 
 }
 
@@ -228,6 +245,7 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
                 // Assume it's the directory path
                 if (strlen(argv[cur_arg]) >= MAX_PATH_SIZE_CHECKED) {
                     perror("Path is too large");
+                    opt->return_val = 1;
                     exit(1);
                 }
                 if (argv[cur_arg][0] == '~') {
@@ -235,6 +253,7 @@ int parse_arguments(int argc, char *argv[], Options *opt) {
                     char *home = getenv("HOME");
                     if (home == NULL) {
                         perror("Could not find the user's home directory");
+                        opt->return_val = 1;
                         exit(1);
                     }
                     strncpy(opt->path, home, MAX_PATH_SIZE);
@@ -302,5 +321,3 @@ void exec_next_dir(char *complete_path, Options *opt) {
     vec[i] = NULL;
     execv(vec[0], vec);
 }
-
-

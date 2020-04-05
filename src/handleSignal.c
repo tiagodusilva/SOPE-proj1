@@ -3,7 +3,7 @@
 static bool gonnaDieSoon = false;
 
 void alarmHandler(int signo) {
-    sendSignal(getpid(), "GP SIGCONT"); 
+    log_sendSignal(getpid(), "GP SIGCONT"); 
     killpg(thisOpt->child_pgid, SIGCONT);
     gonnaDieSoon = false;
     raise(SIGCONT);
@@ -19,7 +19,7 @@ void handlerFather(int signo){
         gonnaDieSoon = true;
 
         //STOP children
-        writeInLog(SEND_SIGNAL, "SIGSTOP");
+        log_sendSignal(thisOpt->child_pgid, "SIGSTOP");
         killpg(thisOpt->child_pgid, SIGSTOP);
 
         fflush(stdout);
@@ -30,20 +30,20 @@ void handlerFather(int signo){
     }
     else {
         alarm(0);
-        sendSignal(getpid(), "GP SIGINT"); 
-        writeInLog(RECV_SIGNAL, "SIGINT"); 
+        log_sendSignal(getpid(), "GP SIGINT");
         killpg(thisOpt->child_pgid, SIGINT);
+        thisOpt->return_val = 1;
         exit(1);
     }
 
 }
 
 void handlerChild_sigCont(int signo){
-    writeInLog(RECV_SIGNAL, "SIGCONT");
+    log_receiveSignal("SIGCONT");
 }
 
 void handlerChild_sigInt(int signo){
-    writeInLog(RECV_SIGNAL, "SIGINT"); 
+    log_receiveSignal("SIGINT");
 }
 
 int setSignal(Options *opt){

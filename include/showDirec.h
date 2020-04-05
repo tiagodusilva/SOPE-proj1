@@ -24,3 +24,11 @@
  */
 int showDirec(Options *opt);
 
+/**
+ * @brief Calculate the size to be shown to the user
+ * 
+ * @param size 
+ * @param opt 
+ * @return long int 
+ */
+long int calculate_size(long int size, Options *opt);

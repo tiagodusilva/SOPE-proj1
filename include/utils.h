@@ -43,8 +43,7 @@ typedef struct cmd_options {
     char *program_name;
     bool original_process;                   /** @brief True if it's the original process */
 
-    bool all, dereference, separate_dirs, max_depth, apparent_size, child;
-    bool finished_local;                    /** @brief father has finished to check local files**/ 
+    bool all, dereference, separate_dirs, max_depth, apparent_size; 
     long block_size;
     int depth_val;
     char *path;
@@ -62,13 +61,6 @@ typedef struct cmd_options {
  * @param opt 
  */
 void simpledu_startup(int argc, char *argv[], Options *opt);
-
-/**
- * @brief Handles everything the program needs to end
- * 
- * @param opt 
- */
-void simpledu_shutdown(Options *opt);
 
 /**
  * @brief Returns wether a string is a number or not

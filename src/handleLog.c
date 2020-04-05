@@ -1,4 +1,5 @@
 #include "../include/handleLog.h"
+#include "../include/showDirec.h"
 
 #include <sys/time.h>
 
@@ -9,7 +10,11 @@
 static int log_fd = NO_LOGS; /** @brief File descriptor for the log file**/ 
 static struct timeval start;
 
-void fileInfoString(FileInfo *fi, char* res){
+static inline bool log_enabled() {
+    return log_fd != NO_LOGS;
+}
+
+static void fileInfoString(FileInfo *fi, char* res){
     sprintf(res, " %ld %s || IS_DIR: %d || IS_SUBDIR: %d", fi->file_size, fi->name, fi->is_dir, fi->is_sub_dir); 
 }
 
@@ -78,6 +83,58 @@ static int openLog(char * logName) {
     return 0;
 }
 
+/**
+ * @brief Function that writes in the LOG folder
+ * 
+ * @param a Enumerator indicating the action 
+ * @param info Extra information
+ * @return int 1 upon error and 0 on success
+ */
+static int writeInLog(action a, char *info){
+
+    pid_t pid = getpid(); 
+
+    char line [MAX_SIZE_LINE] = "";  
+    char action[MAX_SIZE_ACTION];
+    //handle the enum
+    switch (a)
+    {
+    case CREATE: 
+        strncpy(action, "CREATE", MAX_SIZE_ACTION); 
+        break;
+    case EXIT: 
+        strncpy(action, "EXIT", MAX_SIZE_ACTION);
+        break; 
+    case SEND_SIGNAL: 
+        strncpy(action, "SEND_SIGNAL", MAX_SIZE_ACTION);
+        break; 
+    case RECV_SIGNAL: 
+        strncpy(action, "RECV_SIGNAL", MAX_SIZE_ACTION);
+        break; 
+    case RECV_PIPE: 
+        strncpy(action, "RECV_PIPE", MAX_SIZE_ACTION);
+        break; 
+    case SEND_PIPE: 
+        strncpy(action, "SEND_PIPE", MAX_SIZE_ACTION);
+        break; 
+    case ENTRY:
+        strncpy(action, "ENTRY", MAX_SIZE_ACTION);
+        break; 
+    default:
+        strncpy(action, "UNKNOWN", MAX_SIZE_ACTION);
+        break;
+    }
+
+    int sizeWritten = snprintf(line, MAX_SIZE_INFO, "%-8.2f - %-8d - %-15s - %s \n", get_instant(), pid, action, info);
+
+    if (write(log_fd, line, sizeWritten) == -1){
+        perror("Failed to write to log");
+        return 1;
+    }
+
+    return 0; 
+}
+
 void startLog(Options *opt) {
 
     char *logName = getenv("LOG_FILENAME");
@@ -87,12 +144,14 @@ void startLog(Options *opt) {
         if (opt->original_process){                                              //If actual pin equals to the father pin, then creates file
             if (createLog(logName)){
                 fprintf(stderr, "Error in createLog\n"); 
+                opt->return_val = 1;
                 exit(1);  
             }
         }
         else{
             if(openLog(logName)){
                 fprintf(stderr, "Error opening log file\n");
+                opt->return_val = 1;
                 exit(1);
             }
         }
@@ -100,97 +159,72 @@ void startLog(Options *opt) {
 
 }
 
-int writeInLog(action a, char *info){
-
-    if (log_fd != NO_LOGS) {
-        pid_t pid = getpid(); 
-
-        char line [MAX_SIZE_LINE] = "";  
-        char action[MAX_SIZE_ACTION];
-        //handle the enum
-        switch (a)
-        {
-        case CREATE: 
-            strncpy(action, "CREATE", MAX_SIZE_ACTION); 
-            break;
-        case EXIT: 
-            strncpy(action, "EXIT", MAX_SIZE_ACTION);
-            break; 
-        case SEND_SIGNAL: 
-            strncpy(action, "SEND_SIGNAL", MAX_SIZE_ACTION);
-            break; 
-        case RECV_SIGNAL: 
-            strncpy(action, "RECV_SIGNAL", MAX_SIZE_ACTION);
-            break; 
-        case RECV_PIPE: 
-            strncpy(action, "RECV_PIPE", MAX_SIZE_ACTION);
-            break; 
-        case SEND_PIPE: 
-            strncpy(action, "SEND_PIPE", MAX_SIZE_ACTION);
-            break; 
-        case ENTRY:
-            strncpy(action, "ENTRY", MAX_SIZE_ACTION);
-            break; 
-        default:
-            strncpy(action, "UNKNOWN", MAX_SIZE_ACTION);
-            break;
-        }
-
-        int sizeWritten = snprintf(line, MAX_SIZE_INFO, "%-8.2f - %-8d - %-15s - %s \n", get_instant(), pid, action, info);
-    
-        if (write(log_fd, line, sizeWritten) == -1){
-            perror("Failed to write to log");
-            return 1;
-        }
-    }
-
-    return 0; 
-}
-
 void closeLog(Options *opt) {
 
-    if (log_fd != NO_LOGS) {
+    if (log_enabled()) {
         if (opt->original_process) {
-            writeInLog(EXIT, "FATHER");
             close(log_fd);
             remove(START_TIME_FILENAME);
         }
         else {
-            writeInLog(EXIT, "CHILD");
             close(log_fd);
         }
     }
 
 }
 
- void info_pipe(FileInfo *fi, action a){
-    char *aux = (char*)calloc(MAX_SIZE_LINE, sizeof(char));
+void log_info_pipe(FileInfo *fi, action a){
+    if (log_enabled()) {
+        char *aux = (char*)calloc(MAX_SIZE_INFO, sizeof(char));
 
-    fileInfoString(fi, aux);     
-    writeInLog(a, aux); 
-  
- }
+        fileInfoString(fi, aux);     
+        writeInLog(a, aux);
 
-
-void entry(FileInfo cur_dir, Options *opt){
-    char c[MAX_SIZE_INFO]; 
-    sprintf(c, "%ld %s", cur_dir.file_size, opt->path); 
-    writeInLog(ENTRY, c); 
+        free(aux);
+    } 
 }
 
-void sendSignal(pid_t pid, char * signal){
-    char aux[MAX_SIZE_LINE];
-    sprintf(aux, "%s %d", signal, pid); 
-    writeInLog(SEND_SIGNAL, aux); 
-}
-
-void create(int argc, char* argv[]){
-    
-    char *optString = (char * )calloc(MAX_PATH_SIZE, sizeof(char)); 
-    for (int i = 0; i < argc; i++){
-        strcat(optString, argv[i]); 
-        strcat(optString, " ");
+void log_entry(FileInfo *cur_dir, Options *opt){
+    if (log_enabled()) {
+        char c[MAX_SIZE_INFO]; 
+        sprintf(c, "%ld %s", calculate_size(cur_dir->file_size, opt), opt->path); 
+        writeInLog(ENTRY, c); 
     }
-    writeInLog(CREATE, optString); 
-    free(optString);
+}
+
+void log_sendSignal(pid_t pid, char * signal){
+    if (log_enabled()) {
+        char aux[MAX_SIZE_INFO];
+        sprintf(aux, "%s %d", signal, pid); 
+        writeInLog(SEND_SIGNAL, aux); 
+    }
+}
+
+void log_receiveSignal(char * signal) {
+    if (log_enabled())
+        writeInLog(RECV_SIGNAL, signal);
+}
+
+void log_exit(Options *opt) {
+    if (log_enabled()) {
+        char aux[MAX_SIZE_INFO];
+        if (opt->original_process)
+            sprintf(aux, "FATHER %d", opt->return_val);
+        else
+            sprintf(aux, "CHILD %d", opt->return_val);
+        writeInLog(EXIT, aux);
+    }
+}
+
+void log_create(int argc, char* argv[]){
+    
+    if (log_enabled()) {
+        char *optString = (char * )calloc(MAX_PATH_SIZE, sizeof(char)); 
+        for (int i = 0; i < argc; i++){
+            strcat(optString, argv[i]); 
+            strcat(optString, " ");
+        }
+        writeInLog(CREATE, optString); 
+        free(optString);
+    }
 }

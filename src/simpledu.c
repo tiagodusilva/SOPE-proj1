@@ -13,17 +13,20 @@
 
 
 int main(int argc, char *argv[], char *envp[]) {
-    Options opt;             
-    
-    simpledu_startup(argc, argv, &opt);
-    create(argc, argv);
+    Options *opt = calloc(1, sizeof(Options));             
+    if (opt == NULL) {
+        // If we exit here, we must've been pretty darn unlucky
+        exit(1);
+    }
 
-    if (showDirec(&opt)){
+    simpledu_startup(argc, argv, opt);
+    log_create(argc, argv);
+
+    if (showDirec(opt)){
         perror("Show directory error");
+        opt->return_val = 1;
         exit(1); 
     }
 
-    simpledu_shutdown(&opt);
-
-    exit(opt.return_val);
+    exit(opt->return_val);
 }

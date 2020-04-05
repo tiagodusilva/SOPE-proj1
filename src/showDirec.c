@@ -17,7 +17,7 @@ static ssize_t write_fileInfo(FileInfo *fi, int fileno) {
 }
 
 // Calculate only before printing
-static inline long int calculate_size(long int size, Options *opt) {
+long int calculate_size(long int size, Options *opt) {
         // Quick ceiling q = (x + y - 1) / y;
         return (size + opt->block_size - 1) / opt->block_size;
 }
@@ -37,14 +37,13 @@ static void handle_file_output(FileInfo *fi, Options *opt) {
     if (opt->all && (!opt->max_depth || opt->depth_val > 0)) {
         if (opt->original_process){
             print_fileInfo(fi, opt);
-            if (opt->finished_local) info_pipe(fi,RECV_PIPE); 
         }
         else {
             write_fileInfo(fi, STDOUT_FILENO);   
-            info_pipe(fi, SEND_PIPE); 
-        }     
+            log_info_pipe(fi, SEND_PIPE); 
+        }
     }
-    
+
 }
 
 // IMPORTANT: Handles only directories read from the pipe
@@ -54,14 +53,13 @@ static inline void handle_dir_output(FileInfo *fi, Options *opt) {
     if (opt->original_process) {
         if (!opt->max_depth || opt->depth_val > 0){
             print_fileInfo(fi, opt);
-            info_pipe(fi, RECV_PIPE);
         }
     }
     else {
         // Only case where we want to re-send the directory
         if (!opt->max_depth || opt->depth_val > 0){
             write_fileInfo(fi, STDOUT_FILENO);
-            info_pipe(fi, SEND_PIPE);
+            log_info_pipe(fi, SEND_PIPE);
         }
     }
     
@@ -92,6 +90,7 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
     if (lstat(fi.name, &st) < 0){
         fprintf(stderr, "lstat %s\n", fi.name);
         perror("Error getting the file's stat struct");
+        opt->return_val = 1;
         exit(1); 
     }
 
@@ -108,6 +107,7 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
             if (stat(fi.name, &st) < 0) {
                 if (errno != ENOENT) {
                     perror("Error getting the file's stat struct");
+                    opt->return_val = 1;
                     exit(1);
                 }
                 else {
@@ -165,11 +165,13 @@ int showDirec(Options * opt) {
     Queue_t *dir_q = new_queue();
     if (dir_q == NULL) {
         perror("Failed to instanteate the queue");
+        opt->return_val = 1;
         exit(1);
     }
 
     if ((direc = opendir(opt->path)) == NULL){  
         perror("Not possible to open directory");
+        opt->return_val = 1;
         exit(1);
     }
 
@@ -178,19 +180,18 @@ int showDirec(Options * opt) {
         if (tmp = analyze_file(opt, dirent->d_name, dir_q), tmp != -1)
             cur_dir.file_size += tmp;
     }
-    opt->finished_local = true; 
 
         if (closedir(direc) == -1){
             perror("Not possible to close directory\n");
             return 1;
     }
-    entry(cur_dir, opt); 
 
     if (!queue_is_empty(dir_q)) {
         
         Queue_t *pipe_q = new_queue();
         if (pipe_q == NULL) {
             perror("Failed to create the pipe queue");
+            opt->return_val = 1;
             exit(1);
         }
 
@@ -201,12 +202,14 @@ int showDirec(Options * opt) {
             int *new_pipe = (int*) malloc(sizeof(int[2]));
             if (new_pipe == NULL) {
                 perror("Failed to allocate memory for the pipe");
+                opt->return_val = 1;
                 exit(1);
             }
             queue_push_back(pipe_q, new_pipe);
 
             if (pipe(new_pipe)) {
                 perror("Failed to create pipe");
+                opt->return_val = 1;
                 exit(1);
             }
 
@@ -214,19 +217,20 @@ int showDirec(Options * opt) {
             switch (frk) {
             case -1:
                 perror("Failed to fork");
+                opt->return_val = 1;
                 exit(1);
                 break;
             case 0:
                 if (setpgid(0, opt->child_pgid)) {
-                    // fprintf(stderr, "Fkd %d\n", opt->child_pgid);
-                    // write(STDERR_FILENO, "Fkd\n", 4);
                     perror("Failed to set child's process group");
+                    opt->return_val = 1;
                     exit(1);
                 }                
                 
                 // Handles dup2 with stdout and pipe
                 if (dup2(new_pipe[PIPE_WRITE], STDOUT_FILENO) == -1) {
                     perror("Failed to dup2");
+                    opt->return_val = 1;
                     exit(1);
                 }
                 close(new_pipe[PIPE_READ]);
@@ -239,6 +243,7 @@ int showDirec(Options * opt) {
                 // Exec
                 exec_next_dir(sub_dir, opt);
                 perror("Failed to exec to the next sub directory");
+                opt->return_val = 1;
                 exit(1);
             default:
                 free(sub_dir);
@@ -262,6 +267,7 @@ int showDirec(Options * opt) {
 
                 if (errno != ECHILD && errno != 0 && errno != EINTR) {
                     perror("Error on waitpid");
+                    opt->return_val = 1;
                     exit(1);
                 }
                 
@@ -279,6 +285,7 @@ int showDirec(Options * opt) {
                 int read_return = read_fileInfo(&received_file, cur_pipe[PIPE_READ]);
 
                 if (read_return == sizeof(received_file)) {
+                    log_info_pipe(&received_file, RECV_PIPE);
                     if (received_file.is_sub_dir) {
                         // Last message from that pipe/child
                         if (!opt->separate_dirs)
@@ -309,6 +316,7 @@ int showDirec(Options * opt) {
                     perror("Desync caused the read to not have enough bytes in the pipe");
                     free_queue_and_data(pipe_q);
                     free_queue_and_data(dir_q);
+                    opt->return_val = 1;
                     exit(1);
                 }
             }
@@ -318,12 +326,15 @@ int showDirec(Options * opt) {
 
     }
 
+    log_entry(&cur_dir, opt);
+
     if (opt->original_process) 
         print_fileInfo(&cur_dir, opt);
     
-    else
+    else {
         write_fileInfo(&cur_dir, STDOUT_FILENO); 
-    
+        log_info_pipe(&cur_dir, SEND_PIPE);
+    }
 
     free_queue_and_data(dir_q);
     return 0;
