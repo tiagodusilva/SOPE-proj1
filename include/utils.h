@@ -50,7 +50,8 @@ typedef struct cmd_options {
     
     int return_val; // Used for the case of broken symlinks
 
-    pid_t child_pgid;             
+    pid_t child_pgid;
+    bool sig_termed_childs;
 } Options;
 
 /**

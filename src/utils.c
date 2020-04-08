@@ -15,7 +15,7 @@ static Options *at_exit_opt;
  */
 void simpledu_shutdown() {
 
-    if (at_exit_opt->original_process) {
+    if (at_exit_opt->original_process && !at_exit_opt->sig_termed_childs) {
         kill(at_exit_opt->child_pgid, SIGTERM);
         int aux;
         waitpid(at_exit_opt->child_pgid, &aux, 0);
@@ -23,9 +23,8 @@ void simpledu_shutdown() {
 
     log_exit(at_exit_opt);
     closeLog(at_exit_opt);
-
+    
     free(at_exit_opt);
-
 }
 
 void simpledu_startup(int argc, char *argv[], Options *opt) {
@@ -35,6 +34,7 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
     opt->program_name = argv[0];
     opt->original_process = false;
     opt->return_val = 0;
+    opt->sig_termed_childs = false;
 
     if (parse_arguments(argc, argv, opt)) {
         perror("Invalid command");
