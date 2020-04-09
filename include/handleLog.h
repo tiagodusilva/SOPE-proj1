@@ -53,15 +53,43 @@ void startLog(Options *opt);
  */
 void closeLog(Options *opt);
  
-  
+/**
+ * @brief Writes the information about the pipe
+ * 
+ */
 void log_info_pipe(FileInfo *fi, action a); 
 
+/**
+ * @brief Write in the log that an entry has happened
+ * 
+ * @param fi Struct with the information of the File
+ * @param opt Global struct
+ */
 void log_entry(FileInfo *fi, Options *opt);
-
+/**
+ * @brief Write in the log that a signal was sent
+ * 
+ * @param pid Pid for whom the signal was sent 
+ * @param signal Type of the signal 
+ */
 void log_sendSignal(pid_t pid, char * signal);
 
+/**
+ * @brief Write in the log that signal was received 
+ * 
+ * @param signal Kind of signal 
+ */
 void log_receiveSignal(char * signal);
 
+/**
+ * @brief Writes in the log that process exited 
+ * 
+ */
 void log_exit(Options *opt);
+
+/**
+ * @brief Write in the log that a process was created
+ * 
+ */
 
 void log_create(int argc, char* argv[]);
