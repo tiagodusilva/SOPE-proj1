@@ -12,7 +12,7 @@
 #include "../include/handleLog.h" 
 
 
-int main(int argc, char *argv[], char *envp[]) {
+int main(int argc, char *argv[]) {
     Options *opt = calloc(1, sizeof(Options));             
     if (opt == NULL) {
         // If we exit here, we must've been pretty darn unlucky

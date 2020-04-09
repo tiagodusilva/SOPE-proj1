@@ -18,8 +18,8 @@ static ssize_t write_fileInfo(FileInfo *fi, int fileno) {
 
 // Calculate only before printing
 long int calculate_size(long int size, Options *opt) {
-        // Quick ceiling q = (x + y - 1) / y;
-        return (size + opt->block_size - 1) / opt->block_size;
+    // Quick ceiling q = (x + y - 1) / y;
+    return (size + opt->block_size - 1) / opt->block_size;
 }
 
 // For safekeeping :D
@@ -63,6 +63,148 @@ static inline void handle_dir_output(FileInfo *fi, Options *opt) {
         }
     }
     
+}
+
+/**
+ * @brief Launches all childs needed, one per subdirectory
+ * 
+ * @param dir_q 
+ * @param pipe_q 
+ * @param opt 
+ */
+static void launch_dirs(Queue_t *dir_q, Queue_t *pipe_q, Options *opt) {
+    while (!queue_is_empty(dir_q)) {
+            char *sub_dir = (char*) queue_pop(dir_q);
+            
+            int *new_pipe = (int*) malloc(sizeof(int[2]));
+            if (new_pipe == NULL) {
+                perror("Failed to allocate memory for the pipe");
+                opt->return_val = 1;
+                exit(1);
+            }
+            queue_push_back(pipe_q, new_pipe);
+
+            if (pipe(new_pipe)) {
+                perror("Failed to create pipe");
+                opt->return_val = 1;
+                exit(1);
+            }
+
+            pid_t frk = fork();
+            switch (frk) {
+            case -1:
+                perror("Failed to fork");
+                opt->return_val = 1;
+                exit(1);
+                break;
+            case 0:
+                if (setpgid(0, opt->child_pgid)) {
+                    perror("Failed to set child's process group");
+                    opt->return_val = 1;
+                    exit(1);
+                }                
+                
+                // Handles dup2 with stdout and pipe
+                if (dup2(new_pipe[PIPE_WRITE], STDOUT_FILENO) == -1) {
+                    perror("Failed to dup2");
+                    opt->return_val = 1;
+                    exit(1);
+                }
+                close(new_pipe[PIPE_READ]);
+                close(new_pipe[PIPE_WRITE]);
+
+                // Avoid memory leaks
+                // The sub_dir is safe in memory beause it's not in the queue
+                free_queue_and_data(dir_q);
+                free_queue_and_data(pipe_q);
+
+                // Exec
+                exec_next_dir(sub_dir, opt);
+                perror("Failed to exec to the next sub directory");
+                opt->return_val = 1;
+                exit(1);
+            default:
+                free(sub_dir);
+                break;
+            }
+        }
+}
+
+/**
+ * @brief Reads all the contents from the pipes and waits for all childs to terminate
+ * 
+ * @param cur_dir 
+ * @param pipe_q 
+ * @param opt 
+ */
+static void read_wait_childs(FileInfo *cur_dir, Queue_t *pipe_q, Options *opt) {
+    FileInfo received_file;
+    int num_childs = queue_size(pipe_q);
+    int termination_status = 0, waited = 0;
+    pid_t any = -1;
+
+    errno = 0; // Set default so it won't break on the first if statement of the loop
+    while (num_childs > 0 || !queue_is_empty(pipe_q)) {
+
+        if ((waited = waitpid(any, &termination_status, WNOHANG)) > 0) {
+
+            --num_childs;
+
+            if (errno != ECHILD && errno != 0 && errno != EINTR) {
+                perror("Error on waitpid");
+                opt->return_val = 1;
+                exit(1);
+            }
+            
+            if (termination_status != 0) {
+                // fprintf(stderr, "A child has terminated unsuccessfully\n");
+                opt->return_val = 1;
+                termination_status = 0;
+            }
+
+        }
+
+        // Rotate the available pipes
+        if (!queue_is_empty(pipe_q)) {
+            int *cur_pipe = (int*) queue_pop(pipe_q);
+            int read_return = read_fileInfo(&received_file, cur_pipe[PIPE_READ]);
+
+            if (read_return == sizeof(received_file)) {
+                log_info_pipe(&received_file, RECV_PIPE);
+                if (received_file.is_sub_dir) {
+                    // Last message from that pipe/child
+                    if (!opt->separate_dirs)
+                        cur_dir->file_size += received_file.file_size;
+                    received_file.is_sub_dir = false;
+
+                    // We know it's a directory
+                    handle_dir_output(&received_file, opt);
+
+                    close(cur_pipe[PIPE_READ]);
+                    free(cur_pipe);
+                }
+                else {
+                    // There are still more messages to receive
+                    if (received_file.is_dir)
+                        handle_dir_output(&received_file, opt);
+                    else
+                        handle_file_output(&received_file, opt);
+                    
+                    queue_push_back(pipe_q, cur_pipe);
+                }
+            }
+            else if (read_return == 0) {
+                queue_push_back(pipe_q, cur_pipe);
+            }
+            else if (read_return != 0 && errno != EINTR) {
+                // If it was EINTR, no data was read, so we lit fam
+                perror("Desync caused the read to not have enough bytes in the pipe");
+                free_queue_and_data(pipe_q);
+                opt->return_val = 1;
+                exit(1);
+            }
+        }
+    }
 }
 
 /**
@@ -154,7 +296,6 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
 int showDirec(Options * opt) {
     DIR * direc;
     struct dirent * dirent;
-    long int tmp;
 
     FileInfo cur_dir;
     cur_dir.is_sub_dir = true;
@@ -176,14 +317,15 @@ int showDirec(Options * opt) {
     }
 
     // Take care of all regular files and save our directories for later
+    long int tmp;
     while((dirent = readdir(direc)) != NULL){
         if (tmp = analyze_file(opt, dirent->d_name, dir_q), tmp != -1)
             cur_dir.file_size += tmp;
     }
 
-        if (closedir(direc) == -1){
-            perror("Not possible to close directory\n");
-            return 1;
+    if (closedir(direc) == -1){
+        perror("Not possible to close directory\n");
+        return 1;
     }
 
     if (!queue_is_empty(dir_q)) {
@@ -195,136 +337,13 @@ int showDirec(Options * opt) {
             exit(1);
         }
 
-        // LAUNCH ALL CHILDS
-        while (!queue_is_empty(dir_q)) {
-            char *sub_dir = (char*) queue_pop(dir_q);
-            
-            int *new_pipe = (int*) malloc(sizeof(int[2]));
-            if (new_pipe == NULL) {
-                perror("Failed to allocate memory for the pipe");
-                opt->return_val = 1;
-                exit(1);
-            }
-            queue_push_back(pipe_q, new_pipe);
+        // Launch all childs/subdirectories
+        launch_dirs(dir_q, pipe_q, opt);        
+        free_queue_and_data(dir_q);
 
-            if (pipe(new_pipe)) {
-                perror("Failed to create pipe");
-                opt->return_val = 1;
-                exit(1);
-            }
-
-            pid_t frk = fork();
-            switch (frk) {
-            case -1:
-                perror("Failed to fork");
-                opt->return_val = 1;
-                exit(1);
-                break;
-            case 0:
-                if (setpgid(0, opt->child_pgid)) {
-                    perror("Failed to set child's process group");
-                    opt->return_val = 1;
-                    exit(1);
-                }                
-                
-                // Handles dup2 with stdout and pipe
-                if (dup2(new_pipe[PIPE_WRITE], STDOUT_FILENO) == -1) {
-                    perror("Failed to dup2");
-                    opt->return_val = 1;
-                    exit(1);
-                }
-                close(new_pipe[PIPE_READ]);
-                close(new_pipe[PIPE_WRITE]);
-
-                // Avoid memory leaks
-                // The sub_dir is safe in memory beause it's not in the queue
-                free_queue_and_data(dir_q);
-                free_queue_and_data(pipe_q);
-
-                // Exec
-                exec_next_dir(sub_dir, opt);
-                perror("Failed to exec to the next sub directory");
-                opt->return_val = 1;
-                exit(1);
-            default:
-                free(sub_dir);
-                break;
-            }
-        }
-        
-        // TIME TO READ ALL THE CHILD'S PIPES
-
-        FileInfo received_file;
-        int num_childs = queue_size(pipe_q);
-        int termination_status = 0, waited = 0;
-        pid_t any = -1;
-
-        errno = 0; // Set default so it won't break on the first if statement of the loop
-        while (num_childs > 0 || !queue_is_empty(pipe_q)) {
-
-            if ((waited = waitpid(any, &termination_status, WNOHANG)) > 0) {
-
-                --num_childs;
-
-                if (errno != ECHILD && errno != 0 && errno != EINTR) {
-                    perror("Error on waitpid");
-                    opt->return_val = 1;
-                    exit(1);
-                }
-                
-                if (termination_status != 0) {
-                    // fprintf(stderr, "A child has terminated unsuccessfully\n");
-                    opt->return_val = 1;
-                    termination_status = 0;
-                }
-
-            }
-
-            // Rotate the available pipes
-            if (!queue_is_empty(pipe_q)) {
-                int *cur_pipe = (int*) queue_pop(pipe_q);
-                int read_return = read_fileInfo(&received_file, cur_pipe[PIPE_READ]);
-
-                if (read_return == sizeof(received_file)) {
-                    log_info_pipe(&received_file, RECV_PIPE);
-                    if (received_file.is_sub_dir) {
-                        // Last message from that pipe/child
-                        if (!opt->separate_dirs)
-                            cur_dir.file_size += received_file.file_size;
-                        received_file.is_sub_dir = false;
-
-                        // We know it's a directory
-                        handle_dir_output(&received_file, opt);
-
-                        close(cur_pipe[PIPE_READ]);
-                        free(cur_pipe);
-                    }
-                    else {
-                        // There are still more messages to receive
-                        if (received_file.is_dir)
-                            handle_dir_output(&received_file, opt);
-                        else
-                            handle_file_output(&received_file, opt);
-                        
-                        queue_push_back(pipe_q, cur_pipe);
-                    }
-                }
-                else if (read_return == 0) {
-                    queue_push_back(pipe_q, cur_pipe);
-                }
-                else if (read_return != 0 && errno != EINTR) {
-                    // If it was EINTR, no data was read, so we lit fam
-                    perror("Desync caused the read to not have enough bytes in the pipe");
-                    free_queue_and_data(pipe_q);
-                    free_queue_and_data(dir_q);
-                    opt->return_val = 1;
-                    exit(1);
-                }
-            }
-        }
-
+        // Read and wait for all childs
+        read_wait_childs(&cur_dir, pipe_q, opt);
         free_queue_and_data(pipe_q);
-
     }
 
     log_entry(&cur_dir, opt);
@@ -337,6 +356,5 @@ int showDirec(Options * opt) {
         log_info_pipe(&cur_dir, SEND_PIPE);
     }
 
-    free_queue_and_data(dir_q);
     return 0;
 }
