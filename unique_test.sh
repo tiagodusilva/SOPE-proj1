@@ -1,6 +1,6 @@
 #!/bin/bash
 
-simpledu_location="${HOME}/Documents/SOPE/SOPE-proj1/src/simpledu"
+simpledu_location="${HOME}/Documents/SOPE/SOPE-proj1/simpledu"
 
 command_args="-l -a -L"
 dir="/home/tiago/.cache"
