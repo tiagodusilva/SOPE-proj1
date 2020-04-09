@@ -13,6 +13,11 @@ The original `du` prints to `stdout` as much information as possible, even when 
 ## Known errors/bugs
 
 When running `simpledu` on a really large folder (such asthe user's home for example), it sometimes does not output correctly. We assume this issue is related to running out of pid's, due to too many forks at once. Since synchronization hasn't been taught in class yet, we have no way to test our theory.
+- Update, we may have figured this one out: Running these tests in our home involves the test script compare a run of `simpledu` and `du`, though they are always of different instants of our disk. Every single time one of these tests failed, we were running a web browser or discord on the background, which created temporary files on `~/.cache/` that were present in `simpledu` but not in `du` or vice-versa, causing random tests to fail. We also found out that this happends on `.local/ ` in the Ubuntu distro, but upon some research, that folder was introduced by GNOME/Ubuntu, and is a mix of `.config/` and `.cache/`, so it's perfectly fair the same issue described above would happen.   
+TL;DR: When running tests, don't have ***anything else*** running besides that terminal. Or simply don't run tests on folders that involve the folder `.cache/` or `.local/`.
+
+When sending a `SIGINT` to the process, aka a Ctrl+C, the signal sometimes interrupts a critical call and causes a pipe to break, cascading throughout the other processes causing `simpledu` to crash.
+- Update: Since we fixed the lack of a terminator message on every pipe,  this should be fixed. 
 
 ### Behaviour on different computers
 
@@ -59,3 +64,9 @@ For this purpuose we devised a small communications protocol between all our pro
 The needed information, wether due to subdirectory size or prints, is passed from the subdirectory process' pipe (masked as `stdout`) to their parent, and so on, until it reaches the original process, which finally prints the information, formatted, to the "real" `stdout`.
 
 To handle the various reading ends of the childs' pipes, we used and improved upon Tiago's queue implementation developed for LCOM's final project. The pipes are taken from the queue to try to read data and then pushed back into it if there's still more data to come (our code guarantees that every pipe sends/receives at least one message, the last one having the bool `sub_dir` set to true).
+
+### Log file's instant timestamp
+
+As we needed to keep track of the time since the original process was launched, we had to keep track of the initial instance. The original process creates a temporary file (in the `/tmp/` folder) with the time struct written in it. All other childs access said file only once to read the initial instant's struct and use it to calculate the time passed since the start of the program.
+
+Upon the conclusion of the original process, the temporary file is deleted.

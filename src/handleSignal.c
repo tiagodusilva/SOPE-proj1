@@ -35,10 +35,6 @@ void handlerFather(int signo) {
 
 }
 
-void handlerChild_sigCont(int signo){
-    log_receiveSignal("SIGCONT");
-}
-
 int setSignal(Options *opt){
     
     struct sigaction act; 
@@ -55,23 +51,8 @@ int setSignal(Options *opt){
             perror("Error set father interrupt signal"); 
             return 1; 
         }
-
     }
-    else{
-        // act.sa_handler = handlerChild_sigCont; 
-        // if (sigaction(SIGCONT, &act, NULL) < 0){
-        //     perror("Error set child signal, SIGCONT"); 
-        //     return 1; 
 
-        // }
-
-        // act.sa_handler= handlerChild_sigInt; 
-        // if (sigaction(SIGINT, &act, NULL) < 0){
-        //     perror("Error set child singla, SIGINT");
-        //     return 1; 
-        // }
-
-    }
     return 0;
 }
 
