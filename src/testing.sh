@@ -1,8 +1,8 @@
 #!/bin/bash
 
-simpledu_location="${HOME}/Documentos/SOPE/SOPE-proj1/src/simpledu"
+simpledu_location="${HOME}/Documents/SOPE/SOPE-proj1/src/simpledu"
 
-directories_file="${HOME}/Documentos/SOPE/SOPE-proj1/src/directories_to_test.txt"
+directories_file="${HOME}/Documents/SOPE/SOPE-proj1/src/directories_to_test.txt"
 
 command_args=(
     "-l -a"                          # 0
