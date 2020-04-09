@@ -10,11 +10,23 @@ All requested features were fully implemented.
 
 ## Known errors/bugs
 
-When running `simpledu` on a large folder (the user's home for example), it sometimes doesn't output correctly, which we assume is related to running out of pid's due to too many forks at once. Since synchronization hasn't been talked about in class, we have no way to test our theory.
+When running `simpledu` on a really large folder (such asthe user's home for example), it sometimes does not output correctly. We assume this issue is related to running out of pid's, due to too many forks at once. Since synchronization hasn't been taught in class yet, we have no way to test our theory.
 
 ### Behaviour on different computers
 
-As fas as we have explored, this program's behaviour doesn't differ on the various computers and linux distributions we tested (Ubuntu and Manjaro).
+As fas as we have explored, this program's behaviour doesn't differ on the various computers and linux distributions we tested (Ubuntu and Manjaro). These tests are elaborated below.
+
+### Testing
+
+To extensively test our `simpledu`, we developed two small bash scripts which run various combinations of flags on a list of directories and tests the output (or error code) against that of `du`, using the same criteria specified in the project's guidelines.
+
+To complement this batch testing script, we have another one dedicated to run a single test on a single directory, calling `diff -y --suppress-common-lines` to show only the differences. We used it during development whenever a test case failed upon running the other script.
+
+We have tested almost every combination of flags on the following directories:
+- This git's root directory
+- The `Documents/` directory
+- The `.config/` directory
+- The user's home directory
 
 ## Implementation details
 
