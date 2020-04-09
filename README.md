@@ -14,7 +14,7 @@ When running `simpledu` on a really large folder (such asthe user's home for exa
 
 ### Behaviour on different computers
 
-As fas as we have explored, this program's behaviour doesn't differ on the various computers and linux distributions we tested (Ubuntu and Manjaro). These tests are elaborated below.
+As far as we have explored, this program's behaviour doesn't differ on the various computers and linux distributions we tested (Ubuntu, Manjaro and pure Arch). These tests are elaborated below.
 
 ### Testing
 
