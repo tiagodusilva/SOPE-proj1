@@ -20,11 +20,10 @@ void handlerFather(int signo) {
     
     if (str[0] == 'y' || str[0] == 'Y') {
         // Terminate children
-        log_sendSignal(getpid(), "SIGINT");
-        killpg(thisOpt->child_pgid, SIGINT);
+        log_sendSignal(getpid(), "SIGTERM");
+        killpg(thisOpt->child_pgid, SIGTERM);
         thisOpt->sig_termed_childs = true;
         thisOpt->return_val = 1;
-        fprintf(stderr, "I need a medic bag!\n");
         exit(1);
     }
     else {
@@ -38,11 +37,6 @@ void handlerFather(int signo) {
 
 void handlerChild_sigCont(int signo){
     log_receiveSignal("SIGCONT");
-}
-
-void handlerChild_sigInt(int signo){
-    log_receiveSignal("SIGINT");
-    raise(SIGTERM);
 }
 
 int setSignal(Options *opt){
@@ -71,11 +65,11 @@ int setSignal(Options *opt){
 
         // }
 
-        act.sa_handler= handlerChild_sigInt; 
-        if (sigaction(SIGINT, &act, NULL) < 0){
-            perror("Error set child singla, SIGINT");
-            return 1; 
-        }
+        // act.sa_handler= handlerChild_sigInt; 
+        // if (sigaction(SIGINT, &act, NULL) < 0){
+        //     perror("Error set child singla, SIGINT");
+        //     return 1; 
+        // }
 
     }
     return 0;
