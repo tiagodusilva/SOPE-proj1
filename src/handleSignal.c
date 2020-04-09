@@ -14,7 +14,9 @@ void handlerFather(int signo) {
     write(STDERR_FILENO, "\n____ Do you wish to terminate? ('y' to terminate) ____\n", 56);
 
     char str[MAXLINE+1];
-    while (read(STDIN_FILENO, str, MAXLINE) < 0);
+    while (read(STDIN_FILENO, str, MAXLINE) < 0) {
+        continue; // Cause some compilers are too smart
+    }
     
     if (str[0] == 'y' || str[0] == 'Y') {
         // Terminate children

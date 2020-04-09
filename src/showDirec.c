@@ -234,6 +234,7 @@ int showDirec(Options * opt) {
                     exit(1);
                 }
                 close(new_pipe[PIPE_READ]);
+                close(new_pipe[PIPE_WRITE]);
 
                 // Avoid memory leaks
                 // The sub_dir is safe in memory beause it's not in the queue
