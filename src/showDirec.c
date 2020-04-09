@@ -171,7 +171,11 @@ static void read_wait_childs(FileInfo *cur_dir, Queue_t *pipe_q, Options *opt) {
 
             if (read_return == sizeof(received_file)) {
                 log_info_pipe(&received_file, RECV_PIPE);
-                if (received_file.is_sub_dir) {
+                if (received_file.dummy) {
+                    close(cur_pipe[PIPE_READ]);
+                    free(cur_pipe);                    
+                }
+                else if (received_file.is_sub_dir) {
                     // Last message from that pipe/child
                     if (!opt->separate_dirs)
                         cur_dir->file_size += received_file.file_size;
@@ -221,6 +225,7 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
     fi.file_size = 0;
     fi.is_sub_dir = false;
     fi.is_dir = false;
+    fi.dummy = false;
     fi.name[0] = '\0';
 
     //get the complete path of the file called "name"
@@ -230,7 +235,6 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
     strncat(fi.name, name, MAX_PATH_SIZE);
 
     if (lstat(fi.name, &st) < 0){
-        fprintf(stderr, "lstat %s\n", fi.name);
         perror("Error getting the file's stat struct");
         opt->return_val = 1;
         exit(1); 
@@ -247,7 +251,7 @@ static long int analyze_file(Options* opt, char *name, Queue_t *queue){
             // If it was a symlink and wee have to dereference it
             // We stat the file it points to instead
             if (stat(fi.name, &st) < 0) {
-                if (errno != ENOENT) {
+                if (errno != ENOENT && errno != ELOOP) {
                     perror("Error getting the file's stat struct");
                     opt->return_val = 1;
                     exit(1);
@@ -301,6 +305,7 @@ int showDirec(Options * opt) {
     cur_dir.is_sub_dir = true;
     cur_dir.is_dir = true;
     cur_dir.file_size = 0;
+    cur_dir.dummy = false;
     strncpy(cur_dir.name, opt->path, MAX_PATH_SIZE);
 
     Queue_t *dir_q = new_queue();
@@ -353,6 +358,7 @@ int showDirec(Options * opt) {
     
     else {
         write_fileInfo(&cur_dir, STDOUT_FILENO); 
+        opt->sent_pipe_terminator = true;
         log_info_pipe(&cur_dir, SEND_PIPE);
     }
 

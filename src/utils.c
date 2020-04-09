@@ -10,6 +10,12 @@
 
 static Options *at_exit_opt;
 
+static void send_dummy_dir(int fd) {
+    FileInfo dummy;
+    dummy.dummy = true;
+    write(STDOUT_FILENO, &dummy, sizeof(FileInfo));
+}
+
 /**
  * @brief Handles everything the program needs to end
  */
@@ -19,6 +25,10 @@ void simpledu_shutdown() {
         kill(at_exit_opt->child_pgid, SIGTERM);
         int aux;
         waitpid(at_exit_opt->child_pgid, &aux, 0);
+    }
+
+    if (!at_exit_opt->original_process && !at_exit_opt->sent_pipe_terminator) {
+        send_dummy_dir(STDOUT_FILENO);
     }
 
     log_exit(at_exit_opt);
@@ -35,6 +45,7 @@ void simpledu_startup(int argc, char *argv[], Options *opt) {
     opt->original_process = false;
     opt->return_val = 0;
     opt->sig_termed_childs = false;
+    opt->sent_pipe_terminator = false;
 
     if (parse_arguments(argc, argv, opt)) {
         perror("Invalid command");

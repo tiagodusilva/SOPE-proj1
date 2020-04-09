@@ -7,6 +7,8 @@ This was the code produced for SOPE's first project, whose objective was to accu
 ## Features implemented
 
 All requested features were fully implemented.
+One (probable) additional feature we implemented was the flag `--apparent-size`, due to its indirect envolvement in cases such as `-b - B 512`, because it is the equivalent of `-B 1 --apparent-size -B 512`, which implicates a different behaviour from only `-B 512`.
+The original `du` prints to `stdout` as much information as possible, even when encountering errors such as broken links. Although not tested by the methods used for the evaluation, we continue to print as much information as possible to `stdout`, returning 1 only at the very end.
 
 ## Known errors/bugs
 
@@ -14,7 +16,7 @@ When running `simpledu` on a really large folder (such asthe user's home for exa
 
 ### Behaviour on different computers
 
-As far as we have explored, this program's behaviour doesn't differ on the various computers and linux distributions we tested (Ubuntu, Manjaro and pure Arch). These tests are elaborated below.
+As far as we have explored, this program's behaviour doesn't differ on the various computers and linux distributions we tested (Ubuntu, Manjaro and "I use Arch btw"). These tests are elaborated upon below.
 
 ### Testing
 
@@ -42,7 +44,7 @@ With the goal of easily handling signals, and being able to send a signal to eve
 
 In order to guarantee that every call to `setpgid()` is successful, we must ensure that group is both created and still exists. Otherwise the function would return -1 and errno would have the value `EPERM`, meaning we lacked the permissions to complete the operation.
 
-To solve this problem, the original process creates a dummy child as soon as possible, whose sole purpuose is to outlive all the other processes. This ensures the process group leader is always active while other processes try to enter it, meaning we will never have a permissions related error.
+To solve this problem, the original process creates a dummy child as soon as possible, whose sole purpuose is to outlive all the other processes. This ensures the process group leader is always active while other processes try to enter it, meaning we will never have a permissions related error. By creating this auxiliar child, we use it's pid as the process group for all our childs, as `fork()` guarantees that the child process' pid is an unused process group id.
 
 Besides from creating the process group, this dummy also sends a char via a pipe to the original process, to garantee that the group was created before other childs attempt to join it. Afterwards it enters a while loop, with a `sleep(99)` to have it in background until the original process sends a `SIGTERM` to kill it. The original process only continues its execution after it has received the confirmation char from the dummy child.
 
@@ -55,3 +57,5 @@ Between the moment a process fork's and exec's, the child uses `dup2()` to  redi
 For this purpuose we devised a small communications protocol between all our processes using a struct. This struct contains the file (or directory)'s name and size, alonside two bools indicating wether it is a directory or a file, and if it's the "main" subdirectory. This is, if we need to add it's size to the current directory.
 
 The needed information, wether due to subdirectory size or prints, is passed from the subdirectory process' pipe (masked as `stdout`) to their parent, and so on, until it reaches the original process, which finally prints the information, formatted, to the "real" `stdout`.
+
+To handle the various reading ends of the childs' pipes, we used and improved upon Tiago's queue implementation developed for LCOM's final project. The pipes are taken from the queue to try to read data and then pushed back into it if there's still more data to come (our code guarantees that every pipe sends/receives at least one message, the last one having the bool `sub_dir` set to true).

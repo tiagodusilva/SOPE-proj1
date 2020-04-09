@@ -34,7 +34,7 @@
 
 typedef struct fileInfo {
     long int file_size;
-    bool is_sub_dir, is_dir;
+    bool is_sub_dir, is_dir, dummy;
     char name[MAX_PATH_SIZE];
 } FileInfo;
 
@@ -49,6 +49,8 @@ typedef struct cmd_options {
     char *path;
     
     int return_val; // Used for the case of broken symlinks
+
+    bool sent_pipe_terminator;
 
     pid_t child_pgid;
     bool sig_termed_childs;
