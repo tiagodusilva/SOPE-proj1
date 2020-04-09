@@ -4,6 +4,11 @@
 
 This was the code produced for SOPE's first project, whose objective was to accurately replicate linux's `du` command, taking into account only the flags `-a`, `-b`, `-B`, `-L`, `-S` and `--max-depth=`, with the flag `-l` always active.
 
+## How to run
+
+From the project's root directory simply run `make` to create the executable `simpledu`. Simply call `simpledu` with your intended arguments and you're ready to go!
+To cleanup other files, you can also use `make clean` to delete the object files, or use `make remove` to also remove the executable.
+
 ## Features implemented
 
 All requested features were fully implemented.
