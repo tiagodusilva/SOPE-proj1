@@ -20,6 +20,7 @@
 #define MAXLINE 4096
 
 #define MAX_PATH_SIZE 512
+
 #define MAX_PATH_SIZE_CHECKED (MAX_PATH_SIZE - 100)
 
 /**
@@ -113,5 +114,11 @@ int parse_arguments(int argc, char *argv[], Options *opt);
 
 void exec_next_dir(char *complete_path, Options *opt);
 
-
+/**
+ * @brief Converts the argv vector to a string
+ * 
+ * @param argc Number of elements in argv
+ * @param argv Vector to be converted
+ * @param res Where the answer will be stored
+ */
 void argvToString(int argc, char *argv[], char* res); 

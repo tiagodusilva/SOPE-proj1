@@ -1,6 +1,5 @@
-/home/tiago/Documents/SOPE/SOPE-proj1/src/
-/home/tiago/Documents/SOPE/SOPE-proj1/
-/home/tiago/Documents/SOPE/
-/home/tiago/Documents/
-/home/tiago/.config/
-/home/tiago/
+/home/maruba/Documentos/SOPE/SOPE-proj1/src/
+/home/maruba/Documentos/SOPE/SOPE-proj1/
+/home/maruba/Documentos/SOPE/
+/home/maruba/Documentos/
+/home/maruba/
