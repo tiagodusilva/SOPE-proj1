@@ -25,9 +25,9 @@ As far as we have explored, this program's behaviour doesn't differ on the vario
 
 ### Testing
 
-To extensively test our `simpledu`, we developed two small bash scripts which run various combinations of flags on a list of directories and tests the output (or error code) against that of `du`, using the same criteria specified in the project's guidelines.
+To extensively test our `simpledu`, we developed two small bash scripts. The first runs various combinations of flags on a list of directories and tests the output (or error code) against that of `du`, using the same criteria specified in the project's guidelines. This script is called [testing.sh](src/testing.sh) and uses the auxiliary [directories](src/directories_to_test.txt) file (which should have been .gitignored a long time ago).
 
-To complement this batch testing script, we have another one dedicated to run a single test on a single directory, calling `diff -y --suppress-common-lines` to show only the differences. We used it during development whenever a test case failed upon running the other script.
+To complement this batch testing script, we have another one dedicated to run a single test on a single directory, calling `diff -y --suppress-common-lines` to show only the differences. We used it during development whenever a test case failed upon running the other script. This script is called [unique_testing.sh](src/unique_testing.sh).
 
 We have tested almost every combination of flags on the following directories:
 - This git's root directory
